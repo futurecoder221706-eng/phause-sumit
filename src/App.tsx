@@ -25,7 +25,7 @@ import { DocumentTitle } from './hooks/useDocumentTitle';
 
 type PageComponent = ReturnType<typeof lazy>;
 
-const Sales = lazy(() => import('./pages/dashboards/Sales'));
+// const Sales = lazy(() => import('./pages/dashboards/Sales'));
 const AuthComingSoon = lazy(() => import('./pages/auth/ComingSoon'));
 const AuthCreatePasswordBasic = lazy(() => import('./pages/auth/CreatePasswordBasic'));
 const AuthCreatePasswordCover = lazy(() => import('./pages/auth/CreatePasswordCover'));
@@ -435,8 +435,11 @@ export function App() {
           </Route>
           {/* Dashboard shell */}
           <Route element={<Layout />}>
-            <Route index element={wrap(Sales)} />
-            <Route path="dashboards/sales" element={<Navigate to="/" replace />} />
+            {/* <Route index element={wrap(Sales)} />
+            <Route path="dashboards/sales" element={<Navigate to="/" replace />} /> */}
+            <Route index element={wrap(DashboardsStocks)} />
+            <Route path="dashboard" element={wrap(DashboardsStocks)} />
+            <Route path="dashboards/sales" element={<Navigate to="/dashboards/stocks" replace />} />
             {Object.entries(shell).map(([slug, C]) => (
               <Route key={slug} path={slug} element={wrap(C)} />
             ))}

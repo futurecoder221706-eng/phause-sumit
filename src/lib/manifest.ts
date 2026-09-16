@@ -100,11 +100,12 @@ export function groupsInSection(section: string): NavNode[] {
 
 /**
  * Normalise a router path to a manifest slug. The React edition routes by slug
- * (e.g. "/dashboards/sales"), and "/" maps to the Sales dashboard default.
+ * (e.g. "/dashboards/sales"), and "/" maps to the Stocks dashboard default.
  */
 export function slugFromPath(pathname: string): string {
   let p = (pathname || '/').replace(/\/+$/, '').replace(/^\/+/, '');
-  if (!p || p === 'index') return 'dashboards/sales';
+  // if (!p || p === 'index') return 'dashboards/sales';
+  if (!p || p === 'index') return 'dashboard';
   return p;
 }
 
