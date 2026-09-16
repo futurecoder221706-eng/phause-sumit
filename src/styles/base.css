@@ -358,6 +358,15 @@ hr {
   padding: 20px 0px;
 }
 
+[data-ax-shell-style="detached"] .ax-sidebar {
+  inset-block: var(--ax-detached-inset);
+  border: 1px solid var(--ax-border);
+  border-radius: var(--ax-radius-lg);
+  block-size: auto;
+  box-shadow: var(--ax-shadow-sm);
+  inset-inline-start: var(--ax-detached-inset);
+}
+
 /* ── SHELL column — offset by the sidebar via logical margin ── */
 .ax-shell {
   display: flex;
@@ -388,10 +397,21 @@ hr {
     inset-inline-start var(--ax-motion-base) var(--ax-ease-standard),
     box-shadow var(--ax-motion-fast) var(--ax-ease-standard);
     top: 16px;
-  width: 90%;
+  /* width: 90%;  */
   justify-content: center;
   margin: 0px 25px;
   border-radius: 30px;
+}
+
+@media (min-width: 768px) {
+  [data-ax-shell-style="detached"] .ax-header {
+    border: 1px solid var(--ax-header-border,var(--ax-border));
+    border-radius: var(--ax-radius-lg);
+    box-shadow: var(--ax-shadow-sm);
+    inset-block-start: var(--ax-detached-inset);
+    inset-inline-start: calc(var(--ax-sidebar-w) + var(--ax-detached-inset) * 2);
+    inset-inline-end: var(--ax-detached-inset);
+  }
 }
 /* sticky-shadow when content is scrolled (Alpine toggles .is-scrolled) */
 .ax-header.is-scrolled {
