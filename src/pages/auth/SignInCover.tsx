@@ -51,7 +51,7 @@ export function SignInCover() {
       <style>{COVER_STYLE}</style>
       <div className="ax-auth-cover" style={{ position: 'relative', zIndex: 1, minBlockSize: '100dvh', display: 'grid', gridTemplateColumns: '1fr' }}>
 
-        <aside className="ax-auth-cover__panel" aria-hidden="true"
+        {/* <aside className="ax-auth-cover__panel" aria-hidden="true"
           style={{ position: 'relative', overflow: 'hidden', display: 'none', flexDirection: 'column', justifyContent: 'space-between', padding: 'var(--ax-space-12)', background: 'linear-gradient(150deg, var(--ax-accent-wash) 0%, var(--ax-surface-subtle) 65%, var(--ax-canvas) 100%)', borderInlineEnd: '1px solid var(--ax-border)' }}>
           <span aria-hidden="true" style={{ position: 'absolute', insetBlockStart: -120, insetInlineEnd: -100, inlineSize: 380, blockSize: 380, borderRadius: '50%', background: 'radial-gradient(circle, rgba(var(--ax-accent-rgb),.28), transparent 64%)', filter: 'blur(8px)' }} />
           <span aria-hidden="true" style={{ position: 'absolute', insetBlockEnd: -160, insetInlineStart: -120, inlineSize: 420, blockSize: 420, borderRadius: '50%', background: 'radial-gradient(circle, rgba(var(--ax-accent-rgb),.16), transparent 66%)', filter: 'blur(10px)' }} />
@@ -79,7 +79,7 @@ export function SignInCover() {
             <div><div className="ax-num" style={{ fontFamily: 'var(--ax-font-display)', fontSize: 'var(--ax-text-xl)', fontWeight: 'var(--ax-weight-semibold)', color: 'var(--ax-text-strong)' }}>99.98%</div><div style={{ fontSize: 'var(--ax-text-xs)', color: 'var(--ax-text-muted)' }}>uptime</div></div>
             <div><div className="ax-num" style={{ fontFamily: 'var(--ax-font-display)', fontSize: 'var(--ax-text-xl)', fontWeight: 'var(--ax-weight-semibold)', color: 'var(--ax-text-strong)' }}>4.9/5</div><div style={{ fontSize: 'var(--ax-text-xs)', color: 'var(--ax-text-muted)' }}>avg. rating</div></div>
           </div>
-        </aside>
+        </aside> */}
 
         <main className="ax-center" id="ax-main" style={{ position: 'relative', padding: 'var(--ax-space-8) var(--ax-space-6)' }}>
           <OffappTools style={{ position: 'absolute', insetBlockStart: 'var(--ax-space-5)', insetInlineEnd: 'var(--ax-space-5)' }} />
@@ -92,13 +92,13 @@ export function SignInCover() {
               <p style={{ margin: 0, fontSize: 'var(--ax-text-sm)', color: 'var(--ax-text-muted)' }}>Welcome back — sign in to your workspace.</p>
             </header>
 
-            <SocialButtons verb="Continue" />
+            {/* <SocialButtons verb="Continue" /> */}
 
-            <div className="ax-cluster" style={{ gap: 'var(--ax-space-3)', flexWrap: 'nowrap' }}>
+            {/* <div className="ax-cluster" style={{ gap: 'var(--ax-space-3)', flexWrap: 'nowrap' }}>
               <hr className="ax-divider" style={{ flex: '1 1 auto' }} aria-hidden="true" />
               <span style={{ fontSize: 'var(--ax-text-xs)', color: 'var(--ax-text-subtle)', whiteSpace: 'nowrap' }}>or continue with email</span>
               <hr className="ax-divider" style={{ flex: '1 1 auto' }} aria-hidden="true" />
-            </div>
+            </div> */}
 
             {error && (
               <div role="alert" className="ax-alert ax-alert--danger" style={{ padding: 'var(--ax-space-3) var(--ax-space-4)' }}>

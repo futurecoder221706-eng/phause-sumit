@@ -57,7 +57,7 @@ export function ResetPasswordCover() {
       <style>{COVER_STYLE}</style>
       <div className="ax-auth-cover" style={{ position: 'relative', zIndex: 1, minBlockSize: '100dvh', display: 'grid', gridTemplateColumns: '1fr' }}>
 
-        <aside className="ax-auth-cover__panel" aria-hidden="true"
+        {/* <aside className="ax-auth-cover__panel" aria-hidden="true"
           style={{ position: 'relative', overflow: 'hidden', display: 'none', flexDirection: 'column', justifyContent: 'space-between', padding: 'var(--ax-space-12)', background: 'linear-gradient(150deg, var(--ax-accent-wash) 0%, var(--ax-surface-subtle) 65%, var(--ax-canvas) 100%)', borderInlineEnd: '1px solid var(--ax-border)' }}>
           <span aria-hidden="true" style={{ position: 'absolute', insetBlockStart: -120, insetInlineEnd: -100, inlineSize: 380, blockSize: 380, borderRadius: '50%', background: 'radial-gradient(circle, rgba(var(--ax-accent-rgb),.28), transparent 64%)', filter: 'blur(8px)' }} />
           <span aria-hidden="true" style={{ position: 'absolute', insetBlockEnd: -160, insetInlineStart: -120, inlineSize: 420, blockSize: 420, borderRadius: '50%', background: 'radial-gradient(circle, rgba(var(--ax-accent-rgb),.16), transparent 66%)', filter: 'blur(10px)' }} />
@@ -78,7 +78,7 @@ export function ResetPasswordCover() {
           </div>
 
           <p style={{ margin: 0, position: 'relative', fontSize: 'var(--ax-text-xs)', color: 'var(--ax-text-subtle)' }}>Need a hand? <Link className="ax-link" to="/pages/support">Contact support</Link></p>
-        </aside>
+        </aside> */}
 
         <main className="ax-center" id="ax-main" style={{ position: 'relative', padding: 'var(--ax-space-8) var(--ax-space-6)' }}>
           <OffappTools style={{ position: 'absolute', insetBlockStart: 'var(--ax-space-5)', insetInlineEnd: 'var(--ax-space-5)' }} />
