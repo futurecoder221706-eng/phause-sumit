@@ -1,6 +1,6 @@
 /*
- * Vireo React — Create your account (cover split).
- * 1:1 re-expression of src/html/auth/sign-up-cover.html: a benefits-list gradient
+ * Phause — Super Admin account setup.
+ * 1:1 re-expression of the admin sign-up screen: a benefits-list gradient
  * panel (lg+) beside the same sign-up form (name/email/password+strength/confirm/
  * terms) on the right. Note: this variant's strength barClass uses score<=2=weak.
  */
@@ -27,7 +27,7 @@ const BENEFITS = [
   'SSO, audit logs and SOC 2 from day one',
 ];
 
-export function SignUpCover() {
+export function SignUpAdmin() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -193,7 +193,7 @@ export function SignUpCover() {
             </form>
 
             <p style={{ margin: 0, fontSize: 'var(--ax-text-sm)', color: 'var(--ax-text-muted)' }}>
-              Already have an account? <Link className="ax-link" to="/auth/sign-in-cover" style={{ fontWeight: 'var(--ax-weight-medium)' }}>Sign in</Link>
+              Already have an account? <Link className="ax-link" to="/auth/sign-in-admin" style={{ fontWeight: 'var(--ax-weight-medium)' }}>Sign in</Link>
             </p>
           </div>
         </main>
@@ -202,4 +202,4 @@ export function SignUpCover() {
   );
 }
 
-export default SignUpCover;
+export default SignUpAdmin;

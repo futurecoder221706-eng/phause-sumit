@@ -33,11 +33,11 @@ const AuthLockScreenBasic = lazy(() => import('./pages/auth/LockScreenBasic'));
 const AuthLockScreenCover = lazy(() => import('./pages/auth/LockScreenCover'));
 const AuthMaintenance = lazy(() => import('./pages/auth/Maintenance'));
 const AuthResetPasswordBasic = lazy(() => import('./pages/auth/ResetPasswordBasic'));
-const AuthResetPasswordCover = lazy(() => import('./pages/auth/ResetPasswordCover'));
+const AuthResetPasswordAdmin = lazy(() => import('./pages/auth/ResetPasswordAdmin'));
 const AuthSignInBasic = lazy(() => import('./pages/auth/SignInBasic'));
-const AuthSignInCover = lazy(() => import('./pages/auth/SignInCover'));
+const AuthSignInAdmin = lazy(() => import('./pages/auth/SignInAdmin'));
 const AuthSignUpBasic = lazy(() => import('./pages/auth/SignUpBasic'));
-const AuthSignUpCover = lazy(() => import('./pages/auth/SignUpCover'));
+const AuthSignUpAdmin = lazy(() => import('./pages/auth/SignUpAdmin'));
 const AuthTwoStepBasic = lazy(() => import('./pages/auth/TwoStepBasic'));
 const AuthTwoStepCover = lazy(() => import('./pages/auth/TwoStepCover'));
 const Error401 = lazy(() => import('./pages/error/Error401'));
@@ -220,11 +220,11 @@ const standalone: Record<string, PageComponent> = {
   'auth/lock-screen-cover': AuthLockScreenCover,
   'auth/maintenance': AuthMaintenance,
   'auth/reset-password-basic': AuthResetPasswordBasic,
-  'auth/reset-password-cover': AuthResetPasswordCover,
+  'auth/reset-password-admin': AuthResetPasswordAdmin,
   'auth/sign-in-basic': AuthSignInBasic,
-  'auth/sign-in-cover': AuthSignInCover,
+  'auth/sign-in-admin': AuthSignInAdmin,
   'auth/sign-up-basic': AuthSignUpBasic,
-  'auth/sign-up-cover': AuthSignUpCover,
+  'auth/sign-up-admin': AuthSignUpAdmin,
   'auth/two-step-basic': AuthTwoStepBasic,
   'auth/two-step-cover': AuthTwoStepCover,
   'error/401': Error401,
@@ -424,6 +424,7 @@ export function App() {
         <DocumentTitle />
         <Routes>
           {/* Standalone (no app shell) */}
+          <Route path="/admin/login" element={wrap(AuthSignInAdmin)} />
           {Object.entries(standalone).map(([slug, C]) => (
             <Route key={slug} path={slug} element={wrap(C)} />
           ))}

@@ -1,13 +1,13 @@
 /*
  * Vireo React — Sign in (cover split).
- * 1:1 re-expression of src/html/auth/sign-in-cover.html: a 52/48 split — a
+ * 1:1 re-expression of the admin sign-in screen: a 52/48 split — a
  * gradient testimonial panel (lg+) and the same sign-in form as the basic
  * variant on the right. The lg breakpoint rule lives in the injected <style>.
  */
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  AuthStandalone, OffappTools, BrandInline, SocialButtons, EYE, EYE_OFF,
+  AuthStandalone, OffappTools, BrandInline, EYE, EYE_OFF,
 } from './authShared';
 
 const COVER_STYLE = `
@@ -17,7 +17,7 @@ const COVER_STYLE = `
 }
 `;
 
-export function SignInCover() {
+export function SignInAdmin() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [remember, setRemember] = useState(false);
@@ -89,7 +89,7 @@ export function SignInCover() {
 
             <header style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ax-space-1)' }}>
               <h1 style={{ margin: 0, fontFamily: 'var(--ax-font-display)', fontSize: 'var(--ax-text-2xl)', fontWeight: 'var(--ax-weight-semibold)', color: 'var(--ax-text-strong)', letterSpacing: '-.015em' }}>Sign in</h1>
-              <p style={{ margin: 0, fontSize: 'var(--ax-text-sm)', color: 'var(--ax-text-muted)' }}>Welcome back — sign in to your workspace.</p>
+              <p style={{ margin: 0, fontSize: 'var(--ax-text-sm)', color: 'var(--ax-text-muted)' }}>Welcome back — sign in to phause platform.</p>
             </header>
 
             {/* <SocialButtons verb="Continue" /> */}
@@ -117,7 +117,7 @@ export function SignInCover() {
               <div className="ax-field">
                 <div className="ax-cluster" style={{ justifyContent: 'space-between' }}>
                   <label className="ax-label" htmlFor="si-pass">Password</label>
-                  <Link className="ax-link" to="/auth/reset-password-cover" style={{ fontSize: 'var(--ax-text-xs)' }}>Forgot password?</Link>
+                  <Link className="ax-link" to="/auth/reset-password-admin" style={{ fontSize: 'var(--ax-text-xs)' }}>Forgot password?</Link>
                 </div>
                 <div className="ax-field__control">
                   <input id="si-pass" className={`ax-input ax-input--with-trailing${passErr ? ' is-invalid' : ''}`} autoComplete="current-password" placeholder="••••••••••"
@@ -137,9 +137,9 @@ export function SignInCover() {
               </button>
             </form>
 
-            <p style={{ margin: 0, fontSize: 'var(--ax-text-sm)', color: 'var(--ax-text-muted)' }}>
-              New to Vireo? <Link className="ax-link" to="/auth/sign-up-cover" style={{ fontWeight: 'var(--ax-weight-medium)' }}>Create an account</Link>
-            </p>
+            {/* <p style={{ margin: 0, fontSize: 'var(--ax-text-sm)', color: 'var(--ax-text-muted)' }}>
+              New to Phause? <Link className="ax-link" to="/auth/sign-up-admin" style={{ fontWeight: 'var(--ax-weight-medium)' }}>Create an account</Link>
+            </p> */}
           </div>
         </main>
       </div>
@@ -147,4 +147,4 @@ export function SignInCover() {
   );
 }
 
-export default SignInCover;
+export default SignInAdmin;
