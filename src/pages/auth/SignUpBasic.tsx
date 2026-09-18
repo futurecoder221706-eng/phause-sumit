@@ -159,7 +159,7 @@ export function SignUpBasic() {
               </form>
 
               <p style={{ textAlign: 'center', margin: 0, fontSize: 'var(--ax-text-sm)', color: 'var(--ax-text-muted)' }}>
-                Already have an account? <Link className="ax-link" to="/auth/sign-in-basic" style={{ fontWeight: 'var(--ax-weight-medium)' }}>Sign in</Link>
+                Already have an account? <Link className="ax-link" to="/auth/sign-in-org" style={{ fontWeight: 'var(--ax-weight-medium)' }}>Sign in</Link>
               </p>
             </div>
           </section>

@@ -55,7 +55,7 @@ export function CreatePasswordBasic() {
     setTimeout(() => {
       setLoading(false);
       setDone(true);
-      setTimeout(() => navigate('/auth/sign-in-basic'), 1400);
+      setTimeout(() => navigate('/auth/sign-in-org'), 1400);
     }, 650);
   }
 
@@ -84,7 +84,7 @@ export function CreatePasswordBasic() {
                       <p className="ax-alert__message">For your security, reset links are valid for 60 minutes. Request a fresh one to continue.</p>
                     </div>
                   </div>
-                  <Link className="ax-btn ax-btn--primary ax-btn--block" to="/auth/reset-password-basic" style={{ minHeight: 44 }}>
+                    <Link className="ax-btn ax-btn--primary ax-btn--block" to="/auth/reset-password-org" style={{ minHeight: 44 }}>
                     <span className="ax-btn__label">Request a new link</span>
                   </Link>
                 </div>
@@ -154,7 +154,7 @@ export function CreatePasswordBasic() {
                   )}
 
                   <p style={{ marginBlockStart: 'var(--ax-space-5)', textAlign: 'center', fontSize: 'var(--ax-text-sm)', color: 'var(--ax-text-muted)' }}>
-                    Remembered it? <Link className="ax-link" to="/auth/sign-in-basic">Back to sign in</Link>
+                    Remembered it? <Link className="ax-link" to="/auth/sign-in-org">Back to sign in</Link>
                   </p>
                 </div>
               )}

@@ -1,14 +1,14 @@
 /*
- * Vireo React — Reset password (basic).
- * 1:1 re-expression of src/html/auth/reset-password-basic.html: request state
+ * Phause — Tenant user password reset.
+ * 1:1 re-expression of the tenant reset-password screen: request state
  * (email + leading mail icon) flips to a "check your inbox" success state with a
  * masked email and a 30s resend cooldown. Demo always succeeds (anti-enumeration).
  */
 import { useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { AuthStandalone, OffappTools, BrandCentered } from './authShared';
+import { AuthStandalone, OffappTools, BrandInline } from './authShared';
 
-export function ResetPasswordBasic() {
+export function ResetPasswordOrg() {
   const [email, setEmail] = useState('');
   const [emailErr, setEmailErr] = useState('');
   const [loading, setLoading] = useState(false);
@@ -56,7 +56,8 @@ export function ResetPasswordBasic() {
 
       <main className="ax-center" id="ax-main" style={{ inlineSize: '100%', maxInlineSize: 400, position: 'relative', zIndex: 1 }}>
         <div style={{ inlineSize: '100%', display: 'flex', flexDirection: 'column', gap: 'var(--ax-space-5)' }}>
-          <BrandCentered />
+          {/* <BrandCentered /> */}
+          <BrandInline />
 
           <section className="ax-card" role="region" aria-label="Reset password" style={{ borderRadius: 'var(--ax-radius-xl)' }}>
             <div className="ax-card__body" style={{ padding: 'var(--ax-space-8)', display: 'flex', flexDirection: 'column', gap: 'var(--ax-space-5)' }}>
@@ -87,7 +88,7 @@ export function ResetPasswordBasic() {
                   </form>
 
                   <p style={{ textAlign: 'center', margin: 0, fontSize: 'var(--ax-text-sm)', color: 'var(--ax-text-muted)' }}>
-                    Remembered it? <Link className="ax-link" to="/auth/sign-in-basic" style={{ fontWeight: 'var(--ax-weight-medium)' }}>Sign in</Link>
+                    Remembered it? <Link className="ax-link" to="/auth/sign-in-org" style={{ fontWeight: 'var(--ax-weight-medium)' }}>Sign in</Link>
                   </p>
                 </div>
               ) : (
@@ -103,7 +104,7 @@ export function ResetPasswordBasic() {
                     <button type="button" className="ax-btn ax-btn--secondary ax-btn--block" disabled={cooldown > 0} onClick={resend}>
                       <span className="ax-btn__label">{cooldown > 0 ? `Resend in ${cooldown}s` : 'Resend email'}</span>
                     </button>
-                    <Link className="ax-btn ax-btn--ghost ax-btn--block" to="/auth/sign-in-basic">
+                    <Link className="ax-btn ax-btn--ghost ax-btn--block" to="/auth/sign-in-org">
                       <svg className="ax-btn__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12l14 0" /><path d="M5 12l6 6" /><path d="M5 12l6 -6" /></svg>
                       <span className="ax-btn__label">Back to sign in</span>
                     </Link>
@@ -122,4 +123,4 @@ export function ResetPasswordBasic() {
   );
 }
 
-export default ResetPasswordBasic;
+export default ResetPasswordOrg;

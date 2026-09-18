@@ -32,9 +32,9 @@ const AuthCreatePasswordCover = lazy(() => import('./pages/auth/CreatePasswordCo
 const AuthLockScreenBasic = lazy(() => import('./pages/auth/LockScreenBasic'));
 const AuthLockScreenCover = lazy(() => import('./pages/auth/LockScreenCover'));
 const AuthMaintenance = lazy(() => import('./pages/auth/Maintenance'));
-const AuthResetPasswordBasic = lazy(() => import('./pages/auth/ResetPasswordBasic'));
+const AuthResetPasswordOrg = lazy(() => import('./pages/auth/ResetPasswordOrg'));
 const AuthResetPasswordAdmin = lazy(() => import('./pages/auth/ResetPasswordAdmin'));
-const AuthSignInBasic = lazy(() => import('./pages/auth/SignInBasic'));
+const AuthSignInOrg = lazy(() => import('./pages/auth/SignInOrg'));
 const AuthSignInAdmin = lazy(() => import('./pages/auth/SignInAdmin'));
 const AuthSignUpBasic = lazy(() => import('./pages/auth/SignUpBasic'));
 const AuthSignUpAdmin = lazy(() => import('./pages/auth/SignUpAdmin'));
@@ -219,9 +219,9 @@ const standalone: Record<string, PageComponent> = {
   'auth/lock-screen-basic': AuthLockScreenBasic,
   'auth/lock-screen-cover': AuthLockScreenCover,
   'auth/maintenance': AuthMaintenance,
-  'auth/reset-password-basic': AuthResetPasswordBasic,
+  'auth/reset-password-org': AuthResetPasswordOrg,
   'auth/reset-password-admin': AuthResetPasswordAdmin,
-  'auth/sign-in-basic': AuthSignInBasic,
+  'auth/sign-in-org': AuthSignInOrg,
   'auth/sign-in-admin': AuthSignInAdmin,
   'auth/sign-up-basic': AuthSignUpBasic,
   'auth/sign-up-admin': AuthSignUpAdmin,

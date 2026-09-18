@@ -25,7 +25,7 @@ export function Logout() {
       setSeconds((s) => {
         if (s <= 1) {
           clearInterval(timer);
-          navigate('/auth/sign-in-basic');
+          navigate('/auth/sign-in-org');
           return 0;
         }
         return s - 1;
