@@ -3,3 +3,6 @@ dist
 *.local
 .vite
 .DS_Store
+
+# Environment variables
+.env
