@@ -98,6 +98,7 @@ const DashboardsProjects = lazy(() => import('./pages/dashboards/Projects'));
 const DashboardsSchool = lazy(() => import('./pages/dashboards/School'));
 const DashboardsSocial = lazy(() => import('./pages/dashboards/Social'));
 const DashboardsStocks = lazy(() => import('./pages/dashboards/Stocks'));
+const OrganisationsOrgUser = lazy(() => import('./pages/organisations/OrgUser'));
 const DocsIndex = lazy(() => import('./pages/docs/Index'));
 const EcommerceAddProduct = lazy(() => import('./pages/ecommerce/AddProduct'));
 const EcommerceCart = lazy(() => import('./pages/ecommerce/Cart'));
@@ -440,6 +441,7 @@ export function App() {
             <Route path="dashboards/sales" element={<Navigate to="/" replace />} /> */}
             <Route index element={wrap(DashboardsStocks)} />
             <Route path="dashboard" element={wrap(DashboardsStocks)} />
+            <Route path="organisations/org-user" element={wrap(OrganisationsOrgUser)} />
             <Route path="dashboards/sales" element={<Navigate to="/dashboards/stocks" replace />} />
             {Object.entries(shell).map(([slug, C]) => (
               <Route key={slug} path={slug} element={wrap(C)} />
