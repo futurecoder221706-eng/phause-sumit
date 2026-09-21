@@ -265,6 +265,17 @@ export function Sidebar({ drawerOpen = false }: { drawerOpen?: boolean }) {
 
         <p className="ax-sidebar__section" role="presentation">Organisations</p>
         <Link
+          className={`ax-nav__item ax-nav__item--child${activeSlug === 'organisations/org' ? ' ax-nav__item--active is-active' : ''}`}
+          role="treeitem"
+          aria-level={2}
+          aria-current={activeSlug === 'organisations/org' ? 'page' : undefined}
+          to="/organisations/org"
+          tabIndex={activeSlug === 'organisations/org' ? 0 : -1}
+        >
+          <Icon name="building" className="ax-nav__icon" />
+          <span className="ax-nav__label">Org</span>
+        </Link>
+        <Link
           className={`ax-nav__item ax-nav__item--child${activeSlug === 'organisations/org-user' ? ' ax-nav__item--active is-active' : ''}`}
           role="treeitem"
           aria-level={2}

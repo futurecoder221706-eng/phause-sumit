@@ -1,5 +1,5 @@
 /*
- * Vireo React — Organisation Users (route "org/users").
+ * Phause — Organisation user management (route "organisations/org-user").
  *
  * A table of org users (OrgId, Email, Role, Consent) with edit/delete per
  * row, 10-per-page pagination, a running total, and a "Create User" button
@@ -7,7 +7,7 @@
  * reused for editing an existing row — password is optional there.
  */
 import { useMemo, useState } from 'react';
-import type { ReactElement } from 'react';
+// import type { ReactElement } from 'react';
 import { PageHead } from '../../components/shell/PageHead';
 
 /* ------------------------------------------------------------------ icons */
@@ -39,7 +39,7 @@ const ROLES = [
 ];
 const roleLabel = (value: string) => ROLES.find((r) => r.value === value)?.label ?? value;
 
-export interface OrgUser {
+export interface OrgUserRecord {
   orgId: string;
   email: string;
   role: string;
@@ -50,9 +50,9 @@ export interface OrgUser {
 const PAGE_SIZE = 10;
 
 /* Seed data so the table has something to page through; swap for a real fetch. */
-function seedUsers(count: number): OrgUser[] {
+function seedUsers(count: number): OrgUserRecord[] {
   const domains = ['yourcompany.com', 'acme.io', 'globex.co', 'initech.dev'];
-  const out: OrgUser[] = [];
+  const out: OrgUserRecord[] = [];
   for (let i = 1; i <= count; i++) {
     out.push({
       orgId: `ORG-${String(1000 + i)}`,
@@ -245,8 +245,8 @@ function UserModal(props: UserModalProps) {
 }
 
 /* ------------------------------------------------------------------- page */
-export function OrgUsersPage() {
-  const [users, setUsers] = useState<OrgUser[]>(() => seedUsers(37));
+export function OrgUser() {
+  const [users, setUsers] = useState<OrgUserRecord[]>(() => seedUsers(37));
   const [page, setPage] = useState(1);
   const [modal, setModal] = useState<{ mode: 'create' } | { mode: 'edit'; orgId: string } | null>(null);
 
@@ -287,7 +287,7 @@ export function OrgUsersPage() {
 
   /* Delete is not wired up yet — the button is a placeholder for now and
      intentionally does nothing until the real flow is built. */
-  const handleDelete = (_user: OrgUser) => {};
+  const handleDelete = (_user: OrgUserRecord) => {};
 
   return (
     <>
@@ -406,4 +406,4 @@ export function OrgUsersPage() {
   );
 }
 
-export default OrgUsersPage;
+export default OrgUser;
