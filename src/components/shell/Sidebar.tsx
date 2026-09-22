@@ -299,6 +299,19 @@ export function Sidebar({ drawerOpen = false }: { drawerOpen?: boolean }) {
           <Icon name="users-group" className="ax-nav__icon" />
           <span className="ax-nav__label">Employees</span>
         </Link>
+
+        <p className="ax-sidebar__section" role="presentation">Templates</p>
+        <Link
+          className={`ax-nav__item ax-nav__item--child${activeSlug === 'templates' ? ' ax-nav__item--active is-active' : ''}`}
+          role="treeitem"
+          aria-level={2}
+          aria-current={activeSlug === 'templates' ? 'page' : undefined}
+          to="/templates"
+          tabIndex={activeSlug === 'templates' ? 0 : -1}
+        >
+          <Icon name="article" className="ax-nav__icon" />
+          <span className="ax-nav__label">Template</span>
+        </Link>
       </nav>
     </aside>
   );

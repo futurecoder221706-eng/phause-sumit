@@ -102,6 +102,7 @@ const OrganisationsOrg = lazy(() => import('./pages/organisations/Org'));
 const OrganisationsOrgUser = lazy(() => import('./pages/organisations/OrgUser'));
 const OrganisationsOrgDetail = lazy(() => import('./pages/organisations/OrgDetail'));
 const Employees = lazy(() => import('./pages/employees/Employees'));
+const Templates = lazy(() => import('./pages/templates/Templates'));
 const DocsIndex = lazy(() => import('./pages/docs/Index'));
 const EcommerceAddProduct = lazy(() => import('./pages/ecommerce/AddProduct'));
 const EcommerceCart = lazy(() => import('./pages/ecommerce/Cart'));
@@ -448,6 +449,7 @@ export function App() {
             <Route path="organisations/org/:organisationId" element={wrap(OrganisationsOrgDetail)} />
             <Route path="organisations/org-user" element={wrap(OrganisationsOrgUser)} />
             <Route path="employees" element={wrap(Employees)} />
+            <Route path="templates" element={wrap(Templates)} />
             <Route path="dashboards/sales" element={<Navigate to="/dashboards/stocks" replace />} />
             {Object.entries(shell).map(([slug, C]) => (
               <Route key={slug} path={slug} element={wrap(C)} />
