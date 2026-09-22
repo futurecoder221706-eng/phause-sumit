@@ -312,6 +312,19 @@ export function Sidebar({ drawerOpen = false }: { drawerOpen?: boolean }) {
           <Icon name="article" className="ax-nav__icon" />
           <span className="ax-nav__label">Template</span>
         </Link>
+
+        <p className="ax-sidebar__section" role="presentation">Campaigns</p>
+        <Link
+          className={`ax-nav__item ax-nav__item--child${activeSlug.startsWith('api/campaigns') ? ' ax-nav__item--active is-active' : ''}`}
+          role="treeitem"
+          aria-level={2}
+          aria-current={activeSlug.startsWith('api/campaigns') ? 'page' : undefined}
+          to="/api/campaigns"
+          tabIndex={activeSlug.startsWith('api/campaigns') ? 0 : -1}
+        >
+          <Icon name="article" className="ax-nav__icon" />
+          <span className="ax-nav__label">Campaigns</span>
+        </Link>
       </nav>
     </aside>
   );

@@ -372,6 +372,7 @@ hr {
   display: flex;
   flex-direction: column;
   min-block-size: 100vh;
+  min-inline-size: 0;
   margin-inline-start: var(--ax-sidebar-w);
   transition: margin-inline-start var(--ax-motion-base) var(--ax-ease-standard);
 }
@@ -425,6 +426,7 @@ hr {
   flex-direction: column;
   padding-block-start: var(--ax-header-h); /* clear the fixed header */
   min-block-size: 0;
+  min-inline-size: 0;
 }
 /* page padding (Fluid default); width modes override below.
    `--ax-page-pad` mirrors the inline padding and inherits down the page, so
