@@ -18,6 +18,26 @@ import { create } from 'zustand';
 
 export type UserRole = 'admin' | 'org_user' | null;
 
+const PERMISSION_RESOURCE_ALIASES: Record<string, string> = {
+  organisation: 'organisations',
+  organization: 'organisations',
+  employee: 'employees',
+  campaign: 'campaigns',
+  template: 'templates',
+  report: 'reports',
+  'risk-score': 'risk-scores',
+  role: 'roles',
+};
+
+export function normalizePermissions(permissions: string[]): string[] {
+  return Array.from(new Set(permissions.map((permission) => {
+    const separator = permission.indexOf(':');
+    if (separator < 0) return permission;
+    const resource = permission.slice(0, separator);
+    return `${PERMISSION_RESOURCE_ALIASES[resource] ?? resource}${permission.slice(separator)}`;
+  })));
+}
+
 interface AuthState {
   adminToken: string | null;
   appToken: string | null;
@@ -40,7 +60,7 @@ const SS_ROLE        = 'phause_userRole';
 const SS_PERMISSIONS = 'phause_permissions';
 
 function loadPermissions(): string[] {
-  try { return JSON.parse(sessionStorage.getItem(SS_PERMISSIONS) ?? '[]'); } catch { return []; }
+  try { return normalizePermissions(JSON.parse(sessionStorage.getItem(SS_PERMISSIONS) ?? '[]')); } catch { return []; }
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -56,10 +76,11 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ adminToken: token, userRole: 'admin', permissions: [] });
   },
   setAppToken: (token, orgId, permissions = []) => {
+    const normalizedPermissions = normalizePermissions(permissions);
     sessionStorage.setItem(SS_APP, token);
     sessionStorage.setItem(SS_ROLE, 'org_user');
-    sessionStorage.setItem(SS_PERMISSIONS, JSON.stringify(permissions));
-    set({ appToken: token, userRole: 'org_user', permissions });
+    sessionStorage.setItem(SS_PERMISSIONS, JSON.stringify(normalizedPermissions));
+    set({ appToken: token, userRole: 'org_user', permissions: normalizedPermissions });
     if (orgId) {
       sessionStorage.setItem(SS_ORG, orgId);
       set({ orgId });

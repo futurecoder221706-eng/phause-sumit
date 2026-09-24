@@ -32,8 +32,9 @@ async function request<T>(
   path: string,
   getToken: TokenGetter | null,
   body?: unknown,
+  extraHeaders: Record<string, string> = {},
 ): Promise<T> {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  const headers: Record<string, string> = { 'Content-Type': 'application/json', ...extraHeaders };
   const token = getToken?.();
   if (token) headers['Authorization'] = `Bearer ${token}`;
 
@@ -56,8 +57,8 @@ async function request<T>(
 }
 
 export const apiClient = {
-  get:    <T>(path: string, getToken: TokenGetter | null = null)                  => request<T>('GET',    path, getToken),
-  post:   <T>(path: string, getToken: TokenGetter | null, body?: unknown)         => request<T>('POST',   path, getToken, body),
-  patch:  <T>(path: string, getToken: TokenGetter | null, body?: unknown)         => request<T>('PATCH',  path, getToken, body),
-  delete: <T>(path: string, getToken: TokenGetter | null)                         => request<T>('DELETE', path, getToken),
+  get:    <T>(path: string, getToken: TokenGetter | null = null, headers?: Record<string, string>) => request<T>('GET',    path, getToken, undefined, headers),
+  post:   <T>(path: string, getToken: TokenGetter | null, body?: unknown, headers?: Record<string, string>) => request<T>('POST',   path, getToken, body, headers),
+  patch:  <T>(path: string, getToken: TokenGetter | null, body?: unknown, headers?: Record<string, string>) => request<T>('PATCH',  path, getToken, body, headers),
+  delete: <T>(path: string, getToken: TokenGetter | null, headers?: Record<string, string>) => request<T>('DELETE', path, getToken, undefined, headers),
 };

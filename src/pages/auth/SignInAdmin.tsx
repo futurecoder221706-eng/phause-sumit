@@ -88,12 +88,13 @@ export function SignInAdmin() {
           token?: string; accessToken?: string; access_token?: string;
           orgId?: string; organizationId?: string; org_id?: string;
           permissions?: string[];
+          user?: { orgId?: string; org_id?: string; permissions?: string[] };
         }>('/api/auth/login', null, { email: email.trim(), password });
 
         const token = res.token ?? res.accessToken ?? res.access_token ?? '';
         if (!token) throw new Error('No token returned');
-        const orgId       = res.orgId ?? res.organizationId ?? res.org_id;
-        const permissions = res.permissions ?? [];
+        const orgId       = res.orgId ?? res.organizationId ?? res.org_id ?? res.user?.orgId ?? res.user?.org_id;
+        const permissions = res.permissions ?? res.user?.permissions ?? [];
         setAppToken(token, orgId, permissions);
         navigate('/', { replace: true });
       }

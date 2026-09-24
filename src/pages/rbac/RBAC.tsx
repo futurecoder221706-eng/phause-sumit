@@ -11,6 +11,8 @@ import { PageHead } from '../../components/shell/PageHead';
 import {
   listRoles,
   createRole,
+  updateRole,
+  deleteRole,
   assignRole,
   PERMISSION_GROUPS,
   type Role,
@@ -22,6 +24,8 @@ const IC_PLUS  = <svg className="ax-btn__icon" viewBox="0 0 24 24" fill="none" s
 const IC_CLOSE = <svg className="ax-btn__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>;
 const IC_CHECK = <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg>;
 const IC_USER  = <svg className="ax-btn__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>;
+const IC_EDIT  = <svg className="ax-btn__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L8 18l-4 1 1-4Z"/></svg>;
+const IC_DELETE = <svg className="ax-btn__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v5M14 11v5"/></svg>;
 
 // ── Permission tag ─────────────────────────────────────────────────────────────
 function PermTag({ perm }: { perm: string }) {
@@ -47,10 +51,10 @@ function PermTag({ perm }: { perm: string }) {
 }
 
 // ── Create Role modal ──────────────────────────────────────────────────────────
-function CreateRoleModal({ onClose, onSave }: { onClose: () => void; onSave: (r: Role) => void }) {
-  const [name, setName]           = useState('');
-  const [desc, setDesc]           = useState('');
-  const [selected, setSelected]   = useState<Set<string>>(new Set());
+function CreateRoleModal({ onClose, onSave, initialRole }: { onClose: () => void; onSave: (r: Role) => void; initialRole?: Role }) {
+  const [name, setName]           = useState(initialRole?.name ?? '');
+  const [desc, setDesc]           = useState(initialRole?.description ?? '');
+  const [selected, setSelected]   = useState<Set<string>>(new Set(initialRole?.permissions ?? []));
   const [saving, setSaving]       = useState(false);
   const [search, setSearch]       = useState('');
 
@@ -91,7 +95,7 @@ function CreateRoleModal({ onClose, onSave }: { onClose: () => void; onSave: (r:
         description: desc.trim(),
         permissions: Array.from(selected),
       };
-      onSave(await createRole(values));
+      onSave(initialRole ? await updateRole(initialRole.id, values) : await createRole(values));
     } finally { setSaving(false); }
   }
 
@@ -106,7 +110,7 @@ function CreateRoleModal({ onClose, onSave }: { onClose: () => void; onSave: (r:
 
         {/* header */}
         <div className="ax-card__header" style={{ flexShrink:0 }}>
-          <div className="ax-card__titles"><h2 className="ax-card__title" id="cr-modal-title">Create Role</h2><p className="ax-card__subtitle">Define the role name and select its permissions.</p></div>
+          <div className="ax-card__titles"><h2 className="ax-card__title" id="cr-modal-title">{initialRole ? 'Edit Role' : 'Create Role'}</h2><p className="ax-card__subtitle">Define the role name and select its permissions.</p></div>
           <button type="button" className="ax-btn ax-btn--ghost ax-btn--icon ax-btn--sm" aria-label="Close" onClick={onClose}>{IC_CLOSE}</button>
         </div>
 
@@ -213,7 +217,7 @@ function CreateRoleModal({ onClose, onSave }: { onClose: () => void; onSave: (r:
               <button type="button" className="ax-btn ax-btn--secondary" onClick={onClose}>Cancel</button>
               <button type="submit" className={`ax-btn ax-btn--primary${saving ? ' is-loading':''}`} aria-busy={saving}>
                 <span className="ax-btn__spinner" aria-hidden="true"/>
-                <span className="ax-btn__label">Create role</span>
+                <span className="ax-btn__label">{initialRole ? 'Save changes' : 'Create role'}</span>
               </button>
             </div>
           </div>
@@ -226,17 +230,17 @@ function CreateRoleModal({ onClose, onSave }: { onClose: () => void; onSave: (r:
 // ── Assign Role modal ──────────────────────────────────────────────────────────
 function AssignRoleModal({ roles, onClose }: { roles: Role[]; onClose: () => void }) {
   const [userId, setUserId]   = useState('');
-  const [roleId, setRoleId]   = useState(roles[0]?.id ?? '');
+  const [roleName, setRoleName] = useState(roles[0]?.name ?? '');
   const [saving, setSaving]   = useState(false);
   const [success, setSuccess] = useState(false);
   const [err, setErr]         = useState('');
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!userId.trim() || !roleId) return;
+    if (!userId.trim() || !roleName) return;
     setSaving(true); setErr('');
     try {
-      await assignRole({ userId: userId.trim(), roleId });
+      await assignRole({ userId: userId.trim(), roleName });
       setSuccess(true);
     } catch {
       setErr('Failed to assign role. Please try again.');
@@ -277,13 +281,13 @@ function AssignRoleModal({ roles, onClose }: { roles: Role[]; onClose: () => voi
               </div>
               <div className="ax-field">
                 <label className="ax-label" htmlFor="ar-role">Role</label>
-                <select id="ar-role" className="ax-select" value={roleId} onChange={(e) => setRoleId(e.target.value)}>
-                  {roles.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+                <select id="ar-role" className="ax-select" value={roleName} onChange={(e) => setRoleName(e.target.value)}>
+                  {roles.map((r) => <option key={r.id} value={r.name}>{r.name}</option>)}
                 </select>
               </div>
               {/* show selected role's permissions preview */}
-              {roleId && (() => {
-                const role = roles.find((r) => r.id === roleId);
+              {roleName && (() => {
+                const role = roles.find((r) => r.name === roleName);
                 return role && role.permissions.length > 0 ? (
                   <div style={{ padding:'var(--ax-space-3)', borderRadius:'var(--ax-radius-md)', background:'var(--ax-surface-subtle)' }}>
                     <p style={{ margin:'0 0 var(--ax-space-2)', fontSize:'var(--ax-text-xs)', color:'var(--ax-text-subtle)', fontWeight:600, textTransform:'uppercase', letterSpacing:'.05em' }}>
@@ -311,13 +315,14 @@ function AssignRoleModal({ roles, onClose }: { roles: Role[]; onClose: () => voi
 }
 
 // ── Main RBAC page ─────────────────────────────────────────────────────────────
-type Modal = 'create' | 'assign' | null;
+type Modal = { type: 'create' } | { type: 'edit'; role: Role } | { type: 'assign' } | null;
 
 export function RBAC() {
   const [roles, setRoles]     = useState<Role[]>([]);
   const [loading, setLoading] = useState(true);
   const [modal, setModal]     = useState<Modal>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [actionError, setActionError] = useState('');
 
   useEffect(() => {
     listRoles().then((data) => { setRoles(data); setLoading(false); });
@@ -328,20 +333,33 @@ export function RBAC() {
     setModal(null);
   }
 
+  async function onRoleDeleted(role: Role) {
+    if (!window.confirm(`Delete role "${role.name}"?`)) return;
+    setActionError('');
+    try {
+      await deleteRole(role.id);
+      setRoles((prev) => prev.filter((item) => item.id !== role.id));
+      setExpanded(null);
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Unable to delete role.');
+    }
+  }
+
   return (
     <>
-      {modal === 'create' && <CreateRoleModal onClose={() => setModal(null)} onSave={onRoleCreated} />}
-      {modal === 'assign' && <AssignRoleModal roles={roles} onClose={() => setModal(null)} />}
+      {modal?.type === 'create' && <CreateRoleModal onClose={() => setModal(null)} onSave={onRoleCreated} />}
+      {modal?.type === 'edit' && <CreateRoleModal initialRole={modal.role} onClose={() => setModal(null)} onSave={(role) => { setRoles((prev) => prev.map((item) => item.id === role.id ? role : item)); setModal(null); }} />}
+      {modal?.type === 'assign' && <AssignRoleModal roles={roles} onClose={() => setModal(null)} />}
 
       <PageHead
         title="Roles & Permissions"
         subtitle="Create roles, define permission sets, and assign them to org users."
         actions={
           <>
-            <button type="button" className="ax-btn ax-btn--secondary" onClick={() => setModal('assign')} disabled={roles.length === 0}>
+            <button type="button" className="ax-btn ax-btn--secondary" onClick={() => setModal({ type: 'assign' })} disabled={roles.length === 0}>
               {IC_USER}<span className="ax-btn__label">Assign Role</span>
             </button>
-            <button type="button" className="ax-btn ax-btn--primary" onClick={() => setModal('create')}>
+            <button type="button" className="ax-btn ax-btn--primary" onClick={() => setModal({ type: 'create' })}>
               {IC_PLUS}<span className="ax-btn__label">Create Role</span>
             </button>
           </>
@@ -368,6 +386,7 @@ export function RBAC() {
         <div className="ax-card__header">
           <div className="ax-card__titles"><h2 className="ax-card__title">Roles</h2><p className="ax-card__subtitle">Click a role to expand its permissions.</p></div>
         </div>
+        {actionError && <div role="alert" className="ax-alert ax-alert--danger" style={{ margin:'0 var(--ax-space-4) var(--ax-space-4)' }}>{actionError}</div>}
 
         {loading ? (
           <div className="ax-card__body" style={{ display:'flex', flexDirection:'column', gap:'var(--ax-space-3)' }}>
@@ -431,10 +450,16 @@ export function RBAC() {
                         }
                       </div>
                       <div style={{ marginTop:'var(--ax-space-3)', display:'flex', gap:'var(--ax-space-2)' }}>
+                        <button type="button" className="ax-btn ax-btn--secondary ax-btn--sm" onClick={() => setModal({ type:'edit', role })}>
+                          {IC_EDIT}<span className="ax-btn__label">Edit role</span>
+                        </button>
+                        <button type="button" className="ax-btn ax-btn--ghost ax-btn--sm" style={{ color:'var(--ax-danger)' }} onClick={() => onRoleDeleted(role)}>
+                          {IC_DELETE}<span className="ax-btn__label">Delete role</span>
+                        </button>
                         <button
                           type="button"
                           className="ax-btn ax-btn--secondary ax-btn--sm"
-                          onClick={() => setModal('assign')}
+                          onClick={() => setModal({ type:'assign' })}
                         >
                           {IC_USER}<span className="ax-btn__label">Assign to user</span>
                         </button>

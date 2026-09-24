@@ -45,9 +45,11 @@ async function adminFetch<T>(
 
 function adapt(raw: Record<string, unknown>): OrgUserRecord {
   return {
+    id:         raw.id ? String(raw.id) : undefined,
     orgId:      String(raw.orgId ?? raw.org_id ?? ''),
     email:      String(raw.email ?? ''),
     role:       String(raw.role ?? 'org_admin'),
+    permissions: Array.isArray(raw.permissions) ? raw.permissions as string[] : [],
     active:     Boolean(raw.active ?? true),
     hasConsent: Boolean(raw.hasConsent ?? raw.has_consent ?? true),
   };

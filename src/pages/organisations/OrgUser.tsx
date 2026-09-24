@@ -41,9 +41,11 @@ const ROLES = [
 const roleLabel = (value: string) => ROLES.find((r) => r.value === value)?.label ?? value;
 
 export interface OrgUserRecord {
+  id?: string;
   orgId: string;
   email: string;
   role: string;
+  permissions?: string[];
   active: boolean;
   hasConsent: boolean;
 }
@@ -250,6 +252,7 @@ export function OrgUser() {
   const [users, setUsers] = useState<OrgUserRecord[]>(() => seedUsers(37));
   const [page, setPage] = useState(1);
   const [modal, setModal] = useState<{ mode: 'create' } | { mode: 'edit'; orgId: string } | null>(null);
+  const [actionError, setActionError] = useState('');
 
   useEffect(() => {
     listOrgUsers().then((data) => { if (data.length) setUsers(data); });
@@ -277,19 +280,25 @@ export function OrgUser() {
   };
 
   const saveEdit = async (orgId: string, values: EditFormState) => {
+    setActionError('');
     try {
       const updated = await updateOrgUser(orgId, values);
       setUsers((prev) => prev.map((u) => u.orgId === orgId ? { ...u, ...updated } : u));
-    } catch {
-      setUsers((prev) => prev.map((u) => u.orgId === orgId ? { ...u, ...values } : u));
+    } catch (err) {
+      throw err instanceof Error ? err : new Error('Unable to update user.');
     }
     setModal(null);
   };
 
   /* Delete calls the soft-deactivate endpoint (sets active: false, returns 204). */
   const handleDelete = async (user: OrgUserRecord) => {
-    try { await deleteOrgUser(user.orgId); } catch { /* ignore — 204 or network */ }
-    setUsers((prev) => prev.filter((u) => u.orgId !== user.orgId));
+    setActionError('');
+    try {
+      await deleteOrgUser(user.id ?? user.orgId);
+      setUsers((prev) => prev.filter((u) => u.orgId !== user.orgId));
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Unable to delete this user.');
+    }
   };
 
   return (
@@ -312,6 +321,11 @@ export function OrgUser() {
               <p className="ax-card__subtitle">{total.toLocaleString()} total user{total === 1 ? '' : 's'}</p>
             </div>
           </div>
+          {actionError && (
+            <div role="alert" className="ax-alert ax-alert--danger" style={{ margin: '0 var(--ax-space-4) var(--ax-space-4)' }}>
+              <div className="ax-alert__content"><p className="ax-alert__message">{actionError}</p></div>
+            </div>
+          )}
 
           <div className="ax-table-wrap">
             <table className="ax-table ax-table--hover">
@@ -342,6 +356,8 @@ export function OrgUser() {
                           className="ax-btn ax-btn--ghost ax-btn--icon ax-btn--sm"
                           aria-label={`Edit ${u.email}`}
                           onClick={() => setModal({ mode: 'edit', orgId: u.orgId })}
+                          disabled={Boolean(u.permissions?.length)}
+                          title={u.permissions?.length ? 'Users with assigned permissions cannot be edited' : 'Edit user'}
                         >
                           {ICON_EDIT}
                         </button>
@@ -350,6 +366,8 @@ export function OrgUser() {
                           className="ax-btn ax-btn--ghost ax-btn--icon ax-btn--sm"
                           aria-label={`Delete ${u.email}`}
                           onClick={() => handleDelete(u)}
+                          disabled={Boolean(u.permissions?.length)}
+                          title={u.permissions?.length ? 'Users with assigned permissions cannot be deleted' : 'Delete user'}
                           style={{ color: 'var(--ax-danger)' }}
                         >
                           {ICON_DELETE}

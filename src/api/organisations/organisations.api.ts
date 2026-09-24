@@ -10,7 +10,7 @@
  */
 
 import { apiClient } from '../client';
-import { getAppToken } from '../../stores/auth.store';
+import { getAppToken, useAuthStore } from '../../stores/auth.store';
 import type { OrganisationRecord } from '../../pages/organisations/Org';
 
 function adapt(raw: Record<string, unknown>): OrganisationRecord {
@@ -50,6 +50,11 @@ export async function createOrganisation(values: {
   disclaimerEnabled: boolean;
   eventRetentionMonths: number;
 }): Promise<OrganisationRecord> {
+  const { userRole, permissions } = useAuthStore.getState();
+  if (userRole !== 'org_user' || !permissions.includes('organisations:create')) {
+    throw new Error('Only an org admin with organisations:create permission can create an organisation.');
+  }
+
   const raw = await apiClient.post<Record<string, unknown>>('/api/organizations', getAppToken, {
     name:                 values.name,
     verifiedEmailDomains: values.verifyDomain,
