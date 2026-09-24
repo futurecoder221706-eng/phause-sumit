@@ -1,172 +1,136 @@
 /*
  * Vireo React — Sidebar (manifest-driven nav tree).
  *
- * Renders the reference .ax-sidebar DOM contract from nav-manifest.json:
- * brand → menu filter → role="tree" nav with section headers, L1 parent groups
- * (collapsible) and child leaves. The active leaf (matched against the router
- * path) gets `ax-nav__item--active is-active aria-current="page"`, its ancestor
- * group opens (`is-open`, panel un-hidden), and the parent button gets
- * `ax-nav__item--trail` — exactly as core/nav.js does in the HTML edition.
+ * RBAC: Admin sees all nav items.
+ * Org user sees only items where they hold the required permission.
+ * Items with no permission requirement are always visible (e.g. Dashboard).
  */
 import { useRef, useState } from 'react';
-// import { useMemo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import {
-  // manifest,
-  // sections,
-  // groupsInSection,
-  slugFromPath,
-  // hrefForSlug,
-  // type NavNode,
-} from '../../lib/manifest';
+import { slugFromPath } from '../../lib/manifest';
 import { Icon } from '../ui/Icon';
 import { useFocusTrap } from '../../hooks/useFocusTrap';
-
+import { useAuthStore } from '../../stores/auth.store';
 
 import LogoIcon from '../../image/logo.png';
 import LogoText from '../../image/logo-text.png';
 
-// function Badge({ badge }: { badge: NavNode['badge'] }) {
-//   if (!badge) return null;
-//   if (badge.type === 'count')
-//     return <span className="ax-nav__badge ax-nav__badge--count">{badge.value}</span>;
-//   if (badge.type === 'Hot') return <span className="ax-nav__badge ax-nav__badge--hot">Hot</span>;
-//   if (badge.type === 'New') return <span className="ax-nav__badge ax-nav__badge--new">New</span>;
-//   return null;
-// }
+// ── Nav item definition ────────────────────────────────────────────────────────
+interface NavItem {
+  slug: string;           // route slug(s) to match for active state
+  to: string;             // href
+  label: string;
+  icon: string;
+  section: string;
+  /** Permission key required. undefined = always visible (admin + org user). */
+  permission?: string;
+  /** Extra slugs that also mark this item active */
+  alsoActive?: string[];
+  /** Admin-only — never shown to org users regardless of permissions */
+  adminOnly?: boolean;
+}
 
-// const CARET = (
-//   <svg
-//     className="ax-nav__caret ax-icon--directional"
-//     viewBox="0 0 24 24"
-//     fill="none"
-//     stroke="currentColor"
-//     strokeWidth={1.75}
-//     strokeLinecap="round"
-//     strokeLinejoin="round"
-//     width={24}
-//     height={24}
-//     aria-hidden="true"
-//   >
-//     <path d="M9 6l6 6l-6 6" />
-//   </svg>
-// );
+const NAV_ITEMS: NavItem[] = [
+  // ── Always visible ──────────────────────────────────────────────────────────
+  { section: '',               slug: 'dashboard',              to: '/dashboard',              label: 'Dashboard',             icon: 'layout-dashboard' },
 
-// interface LeafProps {
-//   node: NavNode;
-//   level: number;
-//   activeSlug: string;
-//   filter: string;
-// }
+  // ── Organisations ───────────────────────────────────────────────────────────
+  { section: 'Organisations',  slug: 'organisations/org',      to: '/organisations/org',      label: 'Org',                   icon: 'building',       permission: 'organisations:read' },
+  { section: '',               slug: 'organisations/org-user', to: '/organisations/org-user', label: 'Org User',              icon: 'user',           permission: 'organisations:read' },
 
-// function Leaf({ node, level, activeSlug, filter }: LeafProps) {
-//   const resolved = manifest.resolve(node)!;
-//   const isActive = resolved.slug === activeSlug;
-//   const hidden = filter && !matches(node, filter);
-//   const cls = ['ax-nav__item', 'ax-nav__item--child'];
-//   if (isActive) cls.push('ax-nav__item--active', 'is-active');
-//   if (hidden) cls.push('is-hidden');
-//   return (
-//     <Link
-//       className={cls.join(' ')}
-//       role="treeitem"
-//       aria-level={level}
-//       aria-current={isActive ? 'page' : undefined}
-//       to={hrefForSlug(resolved.slug)}
-//       tabIndex={isActive ? 0 : -1}
-//     >
-//       <span className="ax-nav__bar" aria-hidden="true"></span>
-//       <span className="ax-nav__label">{node.title}</span>
-//       <Badge badge={node.badge} />
-//     </Link>
-//   );
-// }
+  // ── Employees ───────────────────────────────────────────────────────────────
+  { section: 'Employees',      slug: 'employees',              to: '/employees',              label: 'Employees',             icon: 'users-group',    permission: 'employees:read' },
 
-// interface GroupProps {
-//   node: NavNode;
-//   level: number;
-//   activeSlug: string;
-//   filter: string;
-// }
+  // ── Templates ───────────────────────────────────────────────────────────────
+  { section: 'Templates',      slug: 'templates',              to: '/templates',              label: 'Templates',             icon: 'article',        permission: 'templates:read' },
 
-// function Group({ node, level, activeSlug, filter }: GroupProps) {
-//   const children = manifest.childrenOf(node.id).filter((c) => c.inMenu);
-//   const containsActive = useMemo(
-//     () => subtreeContainsSlug(node, activeSlug),
-//     [node, activeSlug],
-//   );
-//   const [open, setOpen] = useState(containsActive || level === 1 && node.section === 'MAIN');
-//   const isOpen = filter ? true : open || containsActive;
-//   const groupHidden = filter && !subtreeMatches(node, filter);
+  // ── Campaigns ───────────────────────────────────────────────────────────────
+  { section: 'Campaigns',      slug: 'api/campaigns',          to: '/api/campaigns',          label: 'Campaigns',             icon: 'article',        permission: 'campaigns:read',  alsoActive: ['api/campaigns/new'] },
+  { section: '',               slug: 'tracking-events',        to: '/tracking-events',        label: 'Tracking Events',       icon: 'activity',       permission: 'campaigns:read' },
 
-//   const parentCls = ['ax-nav__item', 'ax-nav__item--parent'];
-//   if (level > 1) parentCls.push('ax-nav__item--child');
-//   if (containsActive) parentCls.push('ax-nav__item--trail');
+  // ── Reports ─────────────────────────────────────────────────────────────────
+  { section: 'Reports',        slug: 'reports',                to: '/reports',                label: 'Reports & Risk Scores', icon: 'files',          permission: 'reports:read' },
 
-//   return (
-//     <div
-//       className={`ax-nav__group${isOpen ? ' is-open' : ''}${groupHidden ? ' is-hidden' : ''}`}
-//       data-ax-collapse
-//     >
-//       <button
-//         type="button"
-//         className={parentCls.join(' ')}
-//         role="treeitem"
-//         aria-level={level}
-//         aria-expanded={isOpen}
-//         data-ax-group={node.id}
-//         onClick={() => setOpen((o) => !o)}
-//         tabIndex={containsActive ? 0 : -1}
-//       >
-//         {level === 1 && <Icon name={node.icon} className="ax-nav__icon" />}
-//         <span className="ax-nav__label">{node.title}</span>
-//         <Badge badge={node.badge} />
-//         {CARET}
-//       </button>
-//       <div
-//         className="ax-nav__children"
-//         role="group"
-//         data-ax-collapse-panel
-//         hidden={!isOpen}
-//       >
-//         {children.map((child) =>
-//           manifest.childrenOf(child.id).filter((c) => c.inMenu).length > 0 ? (
-//             <Group
-//               key={child.id}
-//               node={child}
-//               level={level + 1}
-//               activeSlug={activeSlug}
-//               filter={filter}
-//             />
-//           ) : (
-//             <Leaf
-//               key={child.id}
-//               node={child}
-//               level={level + 1}
-//               activeSlug={activeSlug}
-//               filter={filter}
-//             />
-//           ),
-//         )}
-//       </div>
-//     </div>
-//   );
-// }
+  // ── Training ────────────────────────────────────────────────────────────────
+  { section: 'Training',       slug: 'training',               to: '/training',               label: 'Training & Remediation',icon: 'school',         permission: 'training:read' },
+
+  // ── Billing ─────────────────────────────────────────────────────────────────
+  { section: 'Billing',        slug: 'billing',                to: '/billing',                label: 'Billing & Plans',       icon: 'credit-card',    permission: 'billing:read' },
+
+  // ── Access Control (admin-only) ──────────────────────────────────────────────
+  { section: 'Access Control', slug: 'rbac',                   to: '/rbac',                   label: 'Roles & Permissions',   icon: 'shield-lock',    adminOnly: true },
+];
 
 export function Sidebar({ drawerOpen = false }: { drawerOpen?: boolean }) {
-  const location = useLocation();
+  const location   = useLocation();
   const activeSlug = slugFromPath(location.pathname);
   const [filter, setFilter] = useState('');
   const rootRef = useRef<HTMLElement>(null);
-  // While the rail is an open off-canvas drawer it is a modal surface: trap Tab
-  // inside it and open on the menu filter (core/sidebar.js openDrawer()).
   useFocusTrap(rootRef, drawerOpen, '.ax-sidebar__filter');
+
+  const userRole    = useAuthStore((s) => s.userRole);
+  const permissions = useAuthStore((s) => s.permissions);
+
+  const isAdmin = userRole === 'admin' || userRole === null; // null = not logged in, show all (guard elsewhere)
+
+  /** Decide whether an item should be shown */
+  function canSee(item: NavItem): boolean {
+    if (item.adminOnly) return isAdmin;
+    if (!item.permission) return true;       // always visible
+    if (isAdmin) return true;                // admin sees everything
+    return permissions.includes(item.permission);
+  }
+
+  // Derive which sections to render (only sections that have ≥1 visible item)
+  const visibleItems = NAV_ITEMS.filter(canSee).filter((item) => {
+    if (!filter.trim()) return true;
+    return item.label.toLowerCase().includes(filter.toLowerCase()) ||
+           item.slug.includes(filter.toLowerCase());
+  });
+
+  // Group by section preserving order, collapsing empty sections
+  const rendered: React.ReactNode[] = [];
+  let lastSection = '';
+
+  for (const item of visibleItems) {
+    if (item.section && item.section !== lastSection) {
+      rendered.push(
+        <p key={`sec-${item.section}`} className="ax-sidebar__section" role="presentation">
+          {item.section}
+        </p>,
+      );
+      lastSection = item.section;
+    }
+
+    const slugs = [item.slug, ...(item.alsoActive ?? [])];
+    const isActive = slugs.some((s) =>
+      s.includes('*') ? activeSlug.startsWith(s.replace('*', '')) : activeSlug === s,
+    );
+
+    rendered.push(
+      <Link
+        key={item.slug}
+        className={`ax-nav__item ax-nav__item--child${isActive ? ' ax-nav__item--active is-active' : ''}`}
+        role="treeitem"
+        aria-level={item.section ? 2 : 1}
+        aria-current={isActive ? 'page' : undefined}
+        to={item.to}
+        tabIndex={isActive ? 0 : -1}
+      >
+        <Icon name={item.icon} className="ax-nav__icon" />
+        <span className="ax-nav__label">{item.label}</span>
+      </Link>,
+    );
+  }
+
+  // Dashboard always gets its own top-level style
+  // (already handled above via aria-level but keep the parent class for the first item)
 
   return (
     <aside className="ax-sidebar" role="navigation" aria-label="Primary" ref={rootRef}>
       {/* ===== BRAND ===== */}
       <div className="ax-sidebar__brand">
-        <Link className="ax-sidebar__logo" to="/" aria-label="Vireo home">
+        <Link className="ax-sidebar__logo" to="/" aria-label="Phause home">
           <span className="ax-sidebar__mark" aria-hidden="true">
             <img className="ax-icon w-40" src={LogoIcon} alt="" />
           </span>
@@ -176,18 +140,7 @@ export function Sidebar({ drawerOpen = false }: { drawerOpen?: boolean }) {
 
       {/* ===== MENU FILTER ===== */}
       <div className="ax-sidebar__search">
-        <svg
-          className="ax-icon ax-sidebar__search-icon"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth={1.75}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          width={24}
-          height={24}
-          aria-hidden="true"
-        >
+        <svg className="ax-icon ax-sidebar__search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" width={24} height={24} aria-hidden="true">
           <path d="M3 10a7 7 0 1 0 14 0a7 7 0 1 0 -14 0" />
           <path d="M21 21l-6 -6" />
         </svg>
@@ -201,26 +154,9 @@ export function Sidebar({ drawerOpen = false }: { drawerOpen?: boolean }) {
           onKeyDown={(e) => e.key === 'Escape' && setFilter('')}
         />
         {filter && (
-          <button
-            type="button"
-            className="ax-sidebar__filter-clear"
-            onClick={() => setFilter('')}
-            aria-label="Clear filter"
-          >
-            <svg
-              className="ax-icon"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={1.75}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              width={24}
-              height={24}
-              aria-hidden="true"
-            >
-              <path d="M18 6l-12 12" />
-              <path d="M6 6l12 12" />
+          <button type="button" className="ax-sidebar__filter-clear" onClick={() => setFilter('')} aria-label="Clear filter">
+            <svg className="ax-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" width={24} height={24} aria-hidden="true">
+              <path d="M18 6l-12 12" /><path d="M6 6l12 12" />
             </svg>
           </button>
         )}
@@ -228,140 +164,34 @@ export function Sidebar({ drawerOpen = false }: { drawerOpen?: boolean }) {
 
       {/* ===== NAV TREE ===== */}
       <nav className="ax-sidebar__nav" role="tree" aria-label="Main menu">
-        {/* {sections().map((section) => (
-          <div key={section}>
-            <p className="ax-sidebar__section" role="presentation">
-              {sectionLabel(section)}
-            </p>
-            {groupsInSection(section)
-              .filter((g) => g.inMenu)
-              .map((g) => (
-                <Group
-                  key={g.id}
-                  node={g}
-                  level={1}
-                  activeSlug={activeSlug}
-                  filter={filter.trim().toLowerCase()}
-                />
-              ))}
+
+        {/* Dashboard (top-level, always visible) */}
+        {canSee(NAV_ITEMS[0]) && (
+          <Link
+            className={`ax-nav__item ax-nav__item--parent${activeSlug === 'dashboard' || activeSlug === '' ? ' ax-nav__item--active is-active' : ''}`}
+            role="treeitem"
+            aria-level={1}
+            aria-current={activeSlug === 'dashboard' || activeSlug === '' ? 'page' : undefined}
+            to="/dashboard"
+            tabIndex={activeSlug === 'dashboard' || activeSlug === '' ? 0 : -1}
+          >
+            <Icon name="layout-dashboard" className="ax-nav__icon" />
+            <span className="ax-nav__label">Dashboard</span>
+          </Link>
+        )}
+
+        {/* All other items (skip dashboard — index 0) */}
+        {rendered.slice(1)}
+
+        {/* No access message for org users with no permissions */}
+        {!isAdmin && visibleItems.length <= 1 && (
+          <div style={{ padding: 'var(--ax-space-4) var(--ax-space-5)', fontSize: 'var(--ax-text-xs)', color: 'var(--ax-text-subtle)', lineHeight: 1.6 }}>
+            No modules assigned yet. Contact your admin to request access.
           </div>
-        ))} */}
-        {/* <p className="ax-sidebar__section" role="presentation">Main</p> */}
-        <Link
-          // className={`ax-nav__item ax-nav__item--parent${activeSlug === 'dashboards/stocks' ? ' ax-nav__item--active is-active' : ''}`}
-          className={`ax-nav__item ax-nav__item--parent${activeSlug === 'dashboard' ? ' ax-nav__item--active is-active' : ''}`}
-          role="treeitem"
-          aria-level={1}
-          // aria-current={activeSlug === 'dashboards/stocks' ? 'page' : undefined}
-          // to="/dashboards/stocks"
-          // tabIndex={activeSlug === 'dashboards/stocks' ? 0 : -1}
-          aria-current={activeSlug === 'dashboard' ? 'page' : undefined}
-          to="/dashboard"
-          tabIndex={activeSlug === 'dashboard' ? 0 : -1}
-        >
-          <Icon name="layout-dashboard" className="ax-nav__icon" />
-          <span className="ax-nav__label">Dashboard</span>
-        </Link>
-
-        <p className="ax-sidebar__section" role="presentation">Organisations</p>
-        <Link
-          className={`ax-nav__item ax-nav__item--child${activeSlug === 'organisations/org' ? ' ax-nav__item--active is-active' : ''}`}
-          role="treeitem"
-          aria-level={2}
-          aria-current={activeSlug === 'organisations/org' ? 'page' : undefined}
-          to="/organisations/org"
-          tabIndex={activeSlug === 'organisations/org' ? 0 : -1}
-        >
-          <Icon name="building" className="ax-nav__icon" />
-          <span className="ax-nav__label">Org</span>
-        </Link>
-        <Link
-          className={`ax-nav__item ax-nav__item--child${activeSlug === 'organisations/org-user' ? ' ax-nav__item--active is-active' : ''}`}
-          role="treeitem"
-          aria-level={2}
-          aria-current={activeSlug === 'organisations/org-user' ? 'page' : undefined}
-          to="/organisations/org-user"
-          tabIndex={activeSlug === 'organisations/org-user' ? 0 : -1}
-        >
-          <Icon name="user" className="ax-nav__icon" />
-          <span className="ax-nav__label">Org User</span>
-        </Link>
-
-        <p className="ax-sidebar__section" role="presentation">Employees</p>
-        <Link
-          className={`ax-nav__item ax-nav__item--child${activeSlug === 'employees' ? ' ax-nav__item--active is-active' : ''}`}
-          role="treeitem"
-          aria-level={2}
-          aria-current={activeSlug === 'employees' ? 'page' : undefined}
-          to="/employees"
-          tabIndex={activeSlug === 'employees' ? 0 : -1}
-        >
-          <Icon name="users-group" className="ax-nav__icon" />
-          <span className="ax-nav__label">Employees</span>
-        </Link>
-
-        <p className="ax-sidebar__section" role="presentation">Templates</p>
-        <Link
-          className={`ax-nav__item ax-nav__item--child${activeSlug === 'templates' ? ' ax-nav__item--active is-active' : ''}`}
-          role="treeitem"
-          aria-level={2}
-          aria-current={activeSlug === 'templates' ? 'page' : undefined}
-          to="/templates"
-          tabIndex={activeSlug === 'templates' ? 0 : -1}
-        >
-          <Icon name="article" className="ax-nav__icon" />
-          <span className="ax-nav__label">Template</span>
-        </Link>
-
-        <p className="ax-sidebar__section" role="presentation">Campaigns</p>
-        <Link
-          className={`ax-nav__item ax-nav__item--child${activeSlug.startsWith('api/campaigns') ? ' ax-nav__item--active is-active' : ''}`}
-          role="treeitem"
-          aria-level={2}
-          aria-current={activeSlug.startsWith('api/campaigns') ? 'page' : undefined}
-          to="/api/campaigns"
-          tabIndex={activeSlug.startsWith('api/campaigns') ? 0 : -1}
-        >
-          <Icon name="article" className="ax-nav__icon" />
-          <span className="ax-nav__label">Campaigns</span>
-        </Link>
+        )}
       </nav>
     </aside>
   );
 }
-
-/* ── helpers ── */
-// function sectionLabel(s: string): string {
-//   // Manifest sections are upper-case; reference renders them title-ish.
-//   const map: Record<string, string> = {
-//     MAIN: 'Main',
-//     APPLICATIONS: 'Applications',
-//     MODULES: 'Modules',
-//     PAGES: 'Pages',
-//     'UI & FORMS': 'UI & Forms',
-//     DOCS: 'Docs',
-//   };
-//   return map[s] || s;
-// }
-
-// function matches(node: NavNode, q: string): boolean {
-//   if (!q) return true;
-//   return (
-//     node.title.toLowerCase().includes(q) ||
-//     (node.keywords || []).some((k) => k.toLowerCase().includes(q))
-//   );
-// }
-// function subtreeMatches(node: NavNode, q: string): boolean {
-//   if (matches(node, q)) return true;
-//   return manifest.childrenOf(node.id).some((c) => subtreeMatches(c, q));
-// }
-// function subtreeContainsSlug(node: NavNode, slug: string): boolean {
-//   const kids = manifest.childrenOf(node.id);
-//   return kids.some((c) => {
-//     const r = manifest.resolve(c)!;
-//     if (r.slug === slug) return true;
-//     return subtreeContainsSlug(c, slug);
-//   });
-// }
 
 export default Sidebar;

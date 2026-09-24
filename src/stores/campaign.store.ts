@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { campaignsApi } from '../api/campaigns/campaigns.api';
+import { campaignsApiReal as campaignsApi } from '../api/campaigns/campaigns.real';
 import type { Campaign, CreateCampaignInput, CampaignTemplate, UpdateCampaignInput } from '../features/campaigns/types';
 
 interface CampaignState {

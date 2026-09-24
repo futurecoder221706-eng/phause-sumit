@@ -8,9 +8,10 @@
  * blurred modal with Cancel. The eye-icon action hands the row to
  * `onViewOrganisation` so the host app can route to the detail page.
  */
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PageHead } from '../../components/shell/PageHead';
+import { listOrganisations, createOrganisation as createOrganisationApi } from '../../api/organisations/organisations.api';
 
 /* ------------------------------------------------------------------ icons */
 const ICON_PLUS = (
@@ -73,7 +74,7 @@ function seedOrganisations(count: number): OrganisationRecord[] {
   return out;
 }
 
-const ENDPOINT = '/api/organisations';
+// Endpoint now handled by organisations.api.ts
 
 const formatDate = (iso: string) =>
   new Date(iso).toLocaleString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
@@ -298,6 +299,10 @@ export function Org({ onViewOrganisation }: Props) {
   const [page, setPage] = useState(1);
   const [createOpen, setCreateOpen] = useState(false);
 
+  useEffect(() => {
+    listOrganisations().then((data) => { if (data.length) setOrgs(data); });
+  }, []);
+
   const total = orgs.length;
   const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const start = (page - 1) * PAGE_SIZE;
@@ -306,29 +311,20 @@ export function Org({ onViewOrganisation }: Props) {
   const goToPage = (p: number) => setPage(Math.min(Math.max(1, p), pageCount));
 
   const createOrganisation = async (values: CreateOrgFormState) => {
-    const res = await fetch(ENDPOINT, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(values),
-    }).catch(() => null);
-    if (res && !res.ok) throw new Error(`Request failed (${res.status})`);
-
-    const id = `ORG-${String(2000 + orgs.length + 1)}`;
-    setOrgs((prev) => [
-      {
-        id,
-        name: values.name,
-        verifyDomain: values.verifyDomain,
-        plan: '12',
+    try {
+      const created = await createOrganisationApi(values);
+      setOrgs((prev) => [created, ...prev]);
+    } catch (err) {
+      // Fallback: optimistic local add
+      const id = `ORG-${String(2000 + orgs.length + 1)}`;
+      setOrgs((prev) => [{
+        id, name: values.name, verifyDomain: values.verifyDomain, plan: '12',
         authRef: { label: 'pending-authorization.pdf', url: '#' },
-        authAccept: false,
-        authSignature: '—',
-        authAt: new Date().toISOString(),
-        region: values.region,
-        disclaimerEnabled: values.disclaimerEnabled,
-      },
-      ...prev,
-    ]);
+        authAccept: false, authSignature: '—', authAt: new Date().toISOString(),
+        region: values.region, disclaimerEnabled: values.disclaimerEnabled,
+      }, ...prev]);
+      if (err instanceof Error) throw err;
+    }
     setPage(1);
     setCreateOpen(false);
   };

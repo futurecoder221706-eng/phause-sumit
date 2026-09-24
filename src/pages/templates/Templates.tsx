@@ -1,5 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { PageHead } from "../../components/shell/PageHead";
+import {
+  listTemplates,
+  createTemplate as createTemplateApi,
+  updateTemplate as updateTemplateApi,
+  deleteTemplate as deleteTemplateApi,
+} from "../../api/templates/templates.api";
 
 export type TemplateLureType = "urgency" | "authority" | "curiosity" | "reward";
 export type TemplateCategory =
@@ -584,30 +590,35 @@ function TemplateDetails({
 export function Templates() {
   const [templates, setTemplates] = useState(SEED_TEMPLATES);
   const [modal, setModal] = useState<ModalState>(null);
-  const createTemplate = (values: TemplateFormValues) => {
-    setTemplates((current) => [
-      { ...values, id: `TPL-${Date.now()}` },
-      ...current,
-    ]);
-    setModal(null);
-  };
-  const updateTemplate = (values: TemplateFormValues) => {
-    if (modal && typeof modal === "object" && "edit" in modal) {
-      setTemplates((current) =>
-        current.map((template) =>
-          template.id === modal.edit.id
-            ? { ...values, id: template.id }
-            : template,
-        ),
-      );
+
+  useEffect(() => {
+    listTemplates().then((data) => { if (data.length) setTemplates(data); });
+  }, []);
+
+  const createTemplate = async (values: TemplateFormValues) => {
+    try {
+      const created = await createTemplateApi(values);
+      setTemplates((current) => [created, ...current]);
+    } catch {
+      setTemplates((current) => [{ ...values, id: `TPL-${Date.now()}` }, ...current]);
     }
     setModal(null);
   };
-  const deleteTemplate = (template: PhishingTemplate) => {
+  const updateTemplate = async (values: TemplateFormValues) => {
+    if (modal && typeof modal === "object" && "edit" in modal) {
+      try {
+        const updated = await updateTemplateApi(modal.edit.id, values);
+        setTemplates((current) => current.map((t) => t.id === modal.edit.id ? updated : t));
+      } catch {
+        setTemplates((current) => current.map((t) => t.id === modal.edit.id ? { ...values, id: t.id } : t));
+      }
+    }
+    setModal(null);
+  };
+  const deleteTemplate = async (template: PhishingTemplate) => {
     if (window.confirm(`Delete template "${template.name}"?`)) {
-      setTemplates((current) =>
-        current.filter((item) => item.id !== template.id),
-      );
+      try { await deleteTemplateApi(template.id); } catch { /* ignore */ }
+      setTemplates((current) => current.filter((t) => t.id !== template.id));
     }
   };
 

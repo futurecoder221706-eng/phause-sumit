@@ -22,6 +22,7 @@ import { Layout } from './components/shell/Layout';
 import { AppLayout } from './components/shell/AppLayout';
 import { CustomizerProvider } from './context/CustomizerContext';
 import { DocumentTitle } from './hooks/useDocumentTitle';
+import { useAuthStore } from './stores/auth.store';
 
 type PageComponent = ReturnType<typeof lazy>;
 
@@ -98,6 +99,7 @@ const DashboardsProjects = lazy(() => import('./pages/dashboards/Projects'));
 const DashboardsSchool = lazy(() => import('./pages/dashboards/School'));
 const DashboardsSocial = lazy(() => import('./pages/dashboards/Social'));
 const DashboardsStocks = lazy(() => import('./pages/dashboards/Stocks'));
+const PhauseDashboard = lazy(() => import('./pages/dashboards/PhauseDashboard'));
 const OrganisationsOrg = lazy(() => import('./pages/organisations/Org'));
 const OrganisationsOrgUser = lazy(() => import('./pages/organisations/OrgUser'));
 const OrganisationsOrgDetail = lazy(() => import('./pages/organisations/OrgDetail'));
@@ -106,6 +108,12 @@ const Templates = lazy(() => import('./pages/templates/Templates'));
 const CampaignList = lazy(() => import('./pages/campaigns/CampaignList'));
 const CampaignCreate = lazy(() => import('./pages/campaigns/CampaignCreate'));
 const CampaignDetails = lazy(() => import('./pages/campaigns/CampaignDetails'));
+const TrackingEvents = lazy(() => import('./pages/campaigns/TrackingEvents'));
+const TrackingEventsIndex = lazy(() => import('./pages/campaigns/TrackingEventsIndex'));
+const Reports = lazy(() => import('./pages/reports/Reports'));
+const Training = lazy(() => import('./pages/training/Training'));
+const Billing  = lazy(() => import('./pages/billing/Billing'));
+const RBACPage = lazy(() => import('./pages/rbac/RBAC'));
 const DocsIndex = lazy(() => import('./pages/docs/Index'));
 const EcommerceAddProduct = lazy(() => import('./pages/ecommerce/AddProduct'));
 const EcommerceCart = lazy(() => import('./pages/ecommerce/Cart'));
@@ -425,6 +433,28 @@ const wrap = (C: PageComponent): ReactElement => (
   </Suspense>
 );
 
+/**
+ * PermGuard — wraps a route element.
+ * - Admin (or unauthenticated): renders the page as-is.
+ * - Org user without the required permission: renders the 403 page instead.
+ */
+function PermGuard({ permission, children }: { permission: string; children: ReactElement }): ReactElement {
+  const userRole    = useAuthStore((s) => s.userRole);
+  const permissions = useAuthStore((s) => s.permissions);
+  if (userRole === 'org_user' && !permissions.includes(permission)) {
+    return wrap(standalone['error/403'] as PageComponent);
+  }
+  return children;
+}
+
+function guardedWrap(C: PageComponent, permission: string): ReactElement {
+  return (
+    <PermGuard permission={permission}>
+      {wrap(C)}
+    </PermGuard>
+  );
+}
+
 export function App() {
   return (
     <CustomizerProvider>
@@ -446,16 +476,22 @@ export function App() {
           <Route element={<Layout />}>
             {/* <Route index element={wrap(Sales)} />
             <Route path="dashboards/sales" element={<Navigate to="/" replace />} /> */}
-            <Route index element={wrap(DashboardsStocks)} />
-            <Route path="dashboard" element={wrap(DashboardsStocks)} />
-            <Route path="organisations/org" element={wrap(OrganisationsOrg)} />
-            <Route path="organisations/org/:organisationId" element={wrap(OrganisationsOrgDetail)} />
-            <Route path="organisations/org-user" element={wrap(OrganisationsOrgUser)} />
-            <Route path="employees" element={wrap(Employees)} />
-            <Route path="templates" element={wrap(Templates)} />
-            <Route path="api/campaigns" element={wrap(CampaignList)} />
-            <Route path="api/campaigns/new" element={wrap(CampaignCreate)} />
-            <Route path="api/campaigns/:campaignId" element={wrap(CampaignDetails)} />
+            <Route index element={wrap(PhauseDashboard)} />
+            <Route path="dashboard" element={wrap(PhauseDashboard)} />
+            <Route path="organisations/org" element={guardedWrap(OrganisationsOrg, 'organisations:read')} />
+            <Route path="organisations/org/:organisationId" element={guardedWrap(OrganisationsOrgDetail, 'organisations:read')} />
+            <Route path="organisations/org-user" element={guardedWrap(OrganisationsOrgUser, 'organisations:read')} />
+            <Route path="employees" element={guardedWrap(Employees, 'employees:read')} />
+            <Route path="templates" element={guardedWrap(Templates, 'templates:read')} />
+            <Route path="api/campaigns" element={guardedWrap(CampaignList, 'campaigns:read')} />
+            <Route path="api/campaigns/new" element={guardedWrap(CampaignCreate, 'campaigns:create')} />
+            <Route path="api/campaigns/:campaignId" element={guardedWrap(CampaignDetails, 'campaigns:read')} />
+            <Route path="api/campaigns/:campaignId/tracking-events" element={guardedWrap(TrackingEvents, 'campaigns:read')} />
+            <Route path="tracking-events" element={guardedWrap(TrackingEventsIndex, 'campaigns:read')} />
+            <Route path="reports" element={guardedWrap(Reports, 'reports:read')} />
+            <Route path="training" element={guardedWrap(Training, 'training:read')} />
+            <Route path="billing" element={guardedWrap(Billing, 'billing:read')} />
+            <Route path="rbac" element={guardedWrap(RBACPage, 'roles:read')} />
             <Route path="dashboards/sales" element={<Navigate to="/dashboards/stocks" replace />} />
             {Object.entries(shell).map(([slug, C]) => (
               <Route key={slug} path={slug} element={wrap(C)} />

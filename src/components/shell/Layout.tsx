@@ -117,7 +117,6 @@ export function Layout() {
         ></div>
         <div className="ax-shell">
           <Header
-            onCommand={() => setCommandOpen(true)}
             onCustomizer={() => setCustomizerOpen(true)}
             onNavToggle={onNavToggle}
           />

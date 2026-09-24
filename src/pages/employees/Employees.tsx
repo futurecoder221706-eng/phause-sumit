@@ -1,5 +1,12 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { PageHead } from '../../components/shell/PageHead';
+import {
+  listEmployees,
+  createEmployee,
+  importEmployeesCsv,
+  updateEmployee as updateEmployeeApi,
+  deleteEmployee as deleteEmployeeApi,
+} from '../../api/employees/employees.api';
 
 export type EmployeeSeniority = 'junior' | 'mid' | 'senior' | 'lead' | 'critical';
 
@@ -13,7 +20,7 @@ export interface EmployeeRecord {
   hasConsent: boolean;
 }
 
-interface EmployeeFormValues {
+export interface EmployeeFormValues {
   email: string;
   name: string;
   department: string;
@@ -89,7 +96,7 @@ function parseCsv(csv: string): EmployeeFormValues[] {
 }
 
 export function Employees() {
-  const [employees, setEmployees] = useState(SEED_EMPLOYEES);
+  const [employees, setEmployees] = useState<EmployeeRecord[]>(SEED_EMPLOYEES);
   const [page, setPage] = useState(1);
   const [modal, setModal] = useState<'create' | 'import' | { edit: EmployeeRecord } | { view: EmployeeRecord } | null>(null);
   const [importError, setImportError] = useState('');
@@ -97,8 +104,27 @@ export function Employees() {
   const pageCount = Math.max(1, Math.ceil(employees.length / PAGE_SIZE));
   const rows = useMemo(() => employees.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE), [employees, page]);
 
-  const addEmployees = (values: EmployeeFormValues[]) => {
-    setEmployees((current) => [...values.map((value, index) => ({ ...value, id: `EMP-${Date.now()}-${index}`, organisationId: 'ORG-2001' })), ...current]);
+  // Load employees from API on mount; fall back to seed data silently
+  useEffect(() => {
+    listEmployees().then((data) => { if (data.length) setEmployees(data); });
+  }, []);
+
+  const addEmployees = async (values: EmployeeFormValues[]) => {
+    try {
+      if (values.length === 1) {
+        const created = await createEmployee(values[0]);
+        setEmployees((current) => [created, ...current]);
+      } else {
+        // Bulk: build CSV and send to import endpoint
+        const header = 'email,name,department,seniority,hasConsent';
+        const rows = values.map((v) => `${v.email},${v.name},${v.department},${v.seniority},${v.hasConsent}`);
+        const created = await importEmployeesCsv([header, ...rows].join('\n'));
+        setEmployees((current) => [...created, ...current]);
+      }
+    } catch {
+      // Fallback: optimistic local add
+      setEmployees((current) => [...values.map((value, index) => ({ ...value, id: `EMP-${Date.now()}-${index}`, organisationId: 'ORG-2001' })), ...current]);
+    }
     setPage(1);
     setModal(null);
   };
@@ -106,16 +132,39 @@ export function Employees() {
     const file = event.target.files?.[0];
     if (!file) return;
     setImportError('');
-    try { addEmployees(parseCsv(await file.text())); } catch (error) { setImportError(error instanceof Error ? error.message : 'Unable to import CSV.'); }
+    try {
+      const csvText = await file.text();
+      const parsed = parseCsv(csvText);
+      // Try real API first; fall back to client-side parse
+      try {
+        const created = await importEmployeesCsv(csvText);
+        setEmployees((current) => [...created, ...current]);
+        setPage(1);
+        setModal(null);
+      } catch {
+        setEmployees((current) => [...parsed.map((value, index) => ({ ...value, id: `EMP-${Date.now()}-${index}`, organisationId: 'ORG-2001' })), ...current]);
+        setPage(1);
+        setModal(null);
+      }
+    } catch (error) { setImportError(error instanceof Error ? error.message : 'Unable to import CSV.'); }
     event.target.value = '';
   };
-  const updateEmployee = (values: EmployeeFormValues) => {
+  const updateEmployee = async (values: EmployeeFormValues) => {
     if (modal && typeof modal === 'object' && 'edit' in modal) {
-      setEmployees((current) => current.map((employee) => employee.id === modal.edit.id ? { ...modal.edit, ...values } : employee));
+      try {
+        const updated = await updateEmployeeApi(modal.edit.id, values);
+        setEmployees((current) => current.map((emp) => emp.id === modal.edit.id ? updated : emp));
+      } catch {
+        setEmployees((current) => current.map((emp) => emp.id === modal.edit.id ? { ...modal.edit, ...values } : emp));
+      }
     }
     setModal(null);
   };
-  const deleteEmployee = (id: string) => { setEmployees((current) => current.filter((employee) => employee.id !== id)); setPage(1); };
+  const deleteEmployee = async (id: string) => {
+    try { await deleteEmployeeApi(id); } catch { /* soft-delete endpoint returns 204; ignore errors */ }
+    setEmployees((current) => current.filter((emp) => emp.id !== id));
+    setPage(1);
+  };
 
   return <>
     <PageHead title="Employees" subtitle="Manage employees eligible for authorised phishing simulations." />

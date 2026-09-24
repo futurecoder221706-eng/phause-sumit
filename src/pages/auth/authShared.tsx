@@ -119,7 +119,7 @@ export function BrandCentered({ logoSize = 42, glyph = 24, textSize = 'var(--ax-
 }
 
 /** Inline brand lockup (cover form pane). */
-export function BrandInline({ logoSize = 38, glyph = 22, textSize = 'var(--ax-text-lg)' }: { logoSize?: number; glyph?: number; textSize?: string }) {
+export function BrandInline({ logoSize: _logoSize = 38, glyph: _glyph = 22, textSize: _textSize = 'var(--ax-text-lg)' }: { logoSize?: number; glyph?: number; textSize?: string }) {
   return (
     <Link to="/" className="ax-cluster justify-center" aria-label="Vireo home" style={{ gap: 'var(--ax-space-3)', textDecoration: 'none' }}>
       {/* <span className="ax-center" aria-hidden="true" style={{ inlineSize: logoSize, blockSize: logoSize, borderRadius: 'var(--ax-radius-md)', background: 'var(--ax-gradient-accent)', color: 'var(--ax-on-accent)', boxShadow: '0 8px 22px -8px rgba(var(--ax-accent-rgb),.7)' }}> */}

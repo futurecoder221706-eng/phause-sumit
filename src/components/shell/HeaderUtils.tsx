@@ -21,7 +21,7 @@
  * decided here is whether the More TRIGGER exists at all — exactly the split the
  * reference makes between shell.css §18 and `_bindBands()` in js/alpine/index.js.
  */
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Dropdown } from '../ui/Dropdown';
 import { useCustomizer } from '../../context/CustomizerContext';
@@ -58,24 +58,6 @@ const ICON = {
 };
 
 /*
- * The quick-apps tiles — ONE list, rendered twice: in the wide .ax-apps menu and
- * in the overflow's `[data-ax-shed="apps"]` group. Two copies of this list is how
- * the two rendering sites drift apart, which is exactly what the reference
- * avoids by keeping both inside partials/header-utils.html.
- */
-const APP_TILES: Array<[string, string]> = [
-  ['/apps/email', 'Email'],
-  ['/apps/chat', 'Chat'],
-  ['/apps/calendar', 'Calendar'],
-  ['/apps/kanban', 'Kanban'],
-  ['/apps/file-manager', 'Files'],
-  ['/apps/contacts', 'Contacts'],
-  ['/ecommerce/invoices', 'Invoices'],
-  ['/apps/notes', 'Notes'],
-  ['/pages/pricing', 'Pricing'],
-];
-
-/*
  * Which controls each band sheds into the overflow menu. Keep in lockstep with
  * shell.css §18, which is what actually hides the bar copy and reveals the
  * matching `[data-ax-shed]` row — this table only decides whether the "More"
@@ -101,21 +83,15 @@ const LANGS: Array<[string, string]> = [
   ['RU', 'Русский'],
 ];
 
-export function HeaderUtils({ onCustomizer }: { onCustomizer: () => void }) {
+export function HeaderUtils({ onCustomizer: _onCustomizer }: { onCustomizer: () => void }) {
   const c = useCustomizer();
-  const [full, setFull] = useState(false);
   const shed = useShed();
 
   useEffect(() => {
-    const onFs = () => setFull(!!document.fullscreenElement);
+    const onFs = () => {};
     document.addEventListener('fullscreenchange', onFs);
     return () => document.removeEventListener('fullscreenchange', onFs);
   }, []);
-
-  const toggleFullscreen = () => {
-    if (!document.fullscreenElement) document.documentElement.requestFullscreen?.();
-    else document.exitFullscreen?.();
-  };
 
   return (
     <>

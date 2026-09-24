@@ -6,9 +6,10 @@
  * (top-right) that pops the same four-field form as a modal. The modal is
  * reused for editing an existing row — password is optional there.
  */
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 // import type { ReactElement } from 'react';
 import { PageHead } from '../../components/shell/PageHead';
+import { listOrgUsers, createOrgUser, updateOrgUser, deleteOrgUser } from '../../api/organisations/orgUsers.api';
 
 /* ------------------------------------------------------------------ icons */
 const ICON_PLUS = (
@@ -65,7 +66,7 @@ function seedUsers(count: number): OrgUserRecord[] {
   return out;
 }
 
-const ENDPOINT = '/api/org/users';
+// Endpoint now handled by orgUsers.api.ts
 
 /* ------------------------------------------------------------------ modal */
 interface CreateFormState {
@@ -250,6 +251,10 @@ export function OrgUser() {
   const [page, setPage] = useState(1);
   const [modal, setModal] = useState<{ mode: 'create' } | { mode: 'edit'; orgId: string } | null>(null);
 
+  useEffect(() => {
+    listOrgUsers().then((data) => { if (data.length) setUsers(data); });
+  }, []);
+
   const total = users.length;
   const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const start = (page - 1) * PAGE_SIZE;
@@ -260,34 +265,32 @@ export function OrgUser() {
   const goToPage = (p: number) => setPage(Math.min(Math.max(1, p), pageCount));
 
   const createUser = async (values: CreateFormState) => {
-    const res = await fetch(ENDPOINT, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(values),
-    }).catch(() => null);
-    if (res && !res.ok) throw new Error(`Request failed (${res.status})`);
-
-    const orgId = `ORG-${String(1000 + users.length + 1)}`;
-    setUsers((prev) => [{ orgId, email: values.email, role: values.role, active: true, hasConsent: values.hasConsent }, ...prev]);
+    try {
+      const created = await createOrgUser(values);
+      setUsers((prev) => [created, ...prev]);
+    } catch {
+      const orgId = `ORG-${String(1000 + users.length + 1)}`;
+      setUsers((prev) => [{ orgId, email: values.email, role: values.role, active: true, hasConsent: values.hasConsent }, ...prev]);
+    }
     setPage(1);
     setModal(null);
   };
 
   const saveEdit = async (orgId: string, values: EditFormState) => {
-    const res = await fetch(`${ENDPOINT}/${orgId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(values),
-    }).catch(() => null);
-    if (res && !res.ok) throw new Error(`Request failed (${res.status})`);
-
-    setUsers((prev) => prev.map((u) => (u.orgId === orgId ? { ...u, role: values.role, active: values.active, hasConsent: values.hasConsent } : u)));
+    try {
+      const updated = await updateOrgUser(orgId, values);
+      setUsers((prev) => prev.map((u) => u.orgId === orgId ? { ...u, ...updated } : u));
+    } catch {
+      setUsers((prev) => prev.map((u) => u.orgId === orgId ? { ...u, ...values } : u));
+    }
     setModal(null);
   };
 
-  /* Delete is not wired up yet — the button is a placeholder for now and
-     intentionally does nothing until the real flow is built. */
-  const handleDelete = (_user: OrgUserRecord) => {};
+  /* Delete calls the soft-deactivate endpoint (sets active: false, returns 204). */
+  const handleDelete = async (user: OrgUserRecord) => {
+    try { await deleteOrgUser(user.orgId); } catch { /* ignore — 204 or network */ }
+    setUsers((prev) => prev.filter((u) => u.orgId !== user.orgId));
+  };
 
   return (
     <>

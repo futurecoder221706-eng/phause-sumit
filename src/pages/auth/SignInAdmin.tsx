@@ -1,35 +1,62 @@
 /*
- * Vireo React — Sign in (cover split).
- * 1:1 re-expression of the admin sign-in screen: a 52/48 split — a
- * gradient testimonial panel (lg+) and the same sign-in form as the basic
- * variant on the right. The lg breakpoint rule lives in the injected <style>.
+ * Phause — Unified login page.
+ *
+ * One URL (/admin/login), two modes:
+ *   "admin"    — default. POST /admin/login → stores adminToken, redirects to /
+ *   "org_user" — toggled by "Login as Org User" button. POST /api/auth/login
+ *                → stores appToken, redirects to /
+ *
+ * The mode toggle is a pill switcher at the top of the form — no separate route.
  */
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import {
-  AuthStandalone, OffappTools, BrandInline, EYE, EYE_OFF,
-} from './authShared';
+import { Link, useNavigate } from 'react-router-dom';
+import { AuthStandalone, OffappTools, BrandInline, EYE, EYE_OFF } from './authShared';
+import { useAuthStore } from '../../stores/auth.store';
+import { apiClient, ApiError } from '../../api/client';
 
-const COVER_STYLE = `
-@media (min-width: 992px) {
-  .ax-auth-cover { grid-template-columns: 52% 48%; }
-  .ax-auth-cover__panel { display: flex !important; }
-}
-`;
+type Mode = 'admin' | 'org_user';
+
+// ── icons ─────────────────────────────────────────────────────────────────────
+const IC_SHIELD = (
+  <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M12 3a12 12 0 0 0 8.5 3A12 12 0 0 1 12 21 12 12 0 0 1 3.5 6 12 12 0 0 0 12 3" />
+  </svg>
+);
+const IC_USER = (
+  <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+    <circle cx="12" cy="7" r="4" />
+  </svg>
+);
 
 export function SignInAdmin() {
-  const [email, setEmail] = useState('');
+  const [mode, setMode]       = useState<Mode>('admin');
+  const [email, setEmail]     = useState('');
   const [password, setPassword] = useState('');
   const [remember, setRemember] = useState(false);
-  const [reveal, setReveal] = useState(false);
+  const [reveal, setReveal]   = useState(false);
   const [emailErr, setEmailErr] = useState('');
-  const [passErr, setPassErr] = useState('');
-  const [error, setError] = useState(false);
+  const [passErr, setPassErr]   = useState('');
+  const [error, setError]     = useState('');
   const [loading, setLoading] = useState(false);
+
+  const navigate      = useNavigate();
+  const setAdminToken = useAuthStore((s) => s.setAdminToken);
+  const setAppToken   = useAuthStore((s) => s.setAppToken);
+
+  // reset form when switching modes
+  function switchMode(m: Mode) {
+    setMode(m);
+    setEmail('');
+    setPassword('');
+    setEmailErr('');
+    setPassErr('');
+    setError('');
+  }
 
   function validate() {
     const e = !email.trim()
-      ? 'Enter your email or username.'
+      ? 'Enter your email.'
       : email.includes('@') && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim())
         ? 'Enter a valid email address.'
         : '';
@@ -38,110 +65,237 @@ export function SignInAdmin() {
     setPassErr(p);
     return !e && !p;
   }
-  function submit(ev: React.FormEvent) {
+
+  async function submit(ev: React.FormEvent) {
     ev.preventDefault();
-    setError(false);
+    setError('');
     if (!validate()) return;
     setLoading(true);
-    setTimeout(() => { setLoading(false); setError(true); }, 900);
+    try {
+      if (mode === 'admin') {
+        // ── Admin login ─────────────────────────────────────────────────
+        const res = await apiClient.post<{
+          token?: string; accessToken?: string; access_token?: string;
+        }>('/api/admin/login', null, { email: email.trim(), password });
+
+        const token = res.token ?? res.accessToken ?? res.access_token ?? '';
+        if (!token) throw new Error('No token returned');
+        setAdminToken(token);
+        navigate('/', { replace: true });
+      } else {
+        // ── Org-user login ──────────────────────────────────────────────
+        const res = await apiClient.post<{
+          token?: string; accessToken?: string; access_token?: string;
+          orgId?: string; organizationId?: string; org_id?: string;
+          permissions?: string[];
+        }>('/api/auth/login', null, { email: email.trim(), password });
+
+        const token = res.token ?? res.accessToken ?? res.access_token ?? '';
+        if (!token) throw new Error('No token returned');
+        const orgId       = res.orgId ?? res.organizationId ?? res.org_id;
+        const permissions = res.permissions ?? [];
+        setAppToken(token, orgId, permissions);
+        navigate('/', { replace: true });
+      }
+    } catch (err) {
+      if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
+        setError('Incorrect email or password. Please try again.');
+      } else if (err instanceof ApiError && err.status === 404) {
+        setError('Login endpoint not found. Please contact support.');
+      } else {
+        setError('Unable to sign in. Please check your connection and try again.');
+      }
+    } finally {
+      setLoading(false);
+    }
   }
+
+  const isAdmin = mode === 'admin';
 
   return (
     <AuthStandalone cover>
-      <style>{COVER_STYLE}</style>
-      <div className="ax-auth-cover" style={{ position: 'relative', zIndex: 1, minBlockSize: '100dvh', display: 'grid', gridTemplateColumns: '1fr' }}>
+      <div style={{ position: 'relative', zIndex: 1, minBlockSize: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'var(--ax-space-8) var(--ax-space-6)' }}>
+        <OffappTools style={{ position: 'fixed', insetBlockStart: 'var(--ax-space-5)', insetInlineEnd: 'var(--ax-space-5)', zIndex: 5 }} />
 
-        {/* <aside className="ax-auth-cover__panel" aria-hidden="true"
-          style={{ position: 'relative', overflow: 'hidden', display: 'none', flexDirection: 'column', justifyContent: 'space-between', padding: 'var(--ax-space-12)', background: 'linear-gradient(150deg, var(--ax-accent-wash) 0%, var(--ax-surface-subtle) 65%, var(--ax-canvas) 100%)', borderInlineEnd: '1px solid var(--ax-border)' }}>
-          <span aria-hidden="true" style={{ position: 'absolute', insetBlockStart: -120, insetInlineEnd: -100, inlineSize: 380, blockSize: 380, borderRadius: '50%', background: 'radial-gradient(circle, rgba(var(--ax-accent-rgb),.28), transparent 64%)', filter: 'blur(8px)' }} />
-          <span aria-hidden="true" style={{ position: 'absolute', insetBlockEnd: -160, insetInlineStart: -120, inlineSize: 420, blockSize: 420, borderRadius: '50%', background: 'radial-gradient(circle, rgba(var(--ax-accent-rgb),.16), transparent 66%)', filter: 'blur(10px)' }} />
+        <div style={{ inlineSize: '100%', maxInlineSize: 440, display: 'flex', flexDirection: 'column', gap: 'var(--ax-space-6)' }}>
 
-          <div className="ax-cluster" style={{ gap: 'var(--ax-space-3)', position: 'relative' }}>
-            <span className="ax-center" style={{ inlineSize: 40, blockSize: 40, borderRadius: 'var(--ax-radius-md)', background: 'var(--ax-gradient-accent)', color: 'var(--ax-on-accent)', boxShadow: '0 8px 22px -8px rgba(var(--ax-accent-rgb),.7)' }}>
-              <svg viewBox="0 0 32 32" width={23} height={23} fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs><linearGradient id="axmk0" x1={4} y1={4} x2={28} y2={28} gradientUnits="userSpaceOnUse"><stop stopColor="#2BC4B0" /><stop offset="0.55" stopColor="#1E9E96" /><stop offset="1" stopColor="#6D5CF0" /></linearGradient></defs><path d="M4 4 H16 A12 12 0 0 1 28 16 V28 A0 0 0 0 1 28 28 H16 A12 12 0 0 1 4 16 V4 Z" fill="url(#axmk0)" stroke="none" /><circle cx="20.5" cy="11.5" r="2.6" fill="#0A0C11" fillOpacity="0.92" stroke="none" /></svg>
-            </span>
-            <span style={{ fontFamily: 'var(--ax-font-display)', fontWeight: 'var(--ax-weight-semibold)', fontSize: 'var(--ax-text-lg)', color: 'var(--ax-text-strong)' }}>Vireo</span>
+          {/* Brand */}
+          <BrandInline />
+
+          {/* ── Mode switcher pill ─────────────────────────────────────── */}
+          <div
+            role="group"
+            aria-label="Login type"
+            style={{
+              display: 'grid', gridTemplateColumns: '1fr 1fr',
+              background: 'var(--ax-surface-subtle)',
+              borderRadius: 'var(--ax-radius-xl)',
+              padding: 4,
+              gap: 0,
+            }}
+          >
+            {(['admin', 'org_user'] as Mode[]).map((m) => (
+              <button
+                key={m}
+                type="button"
+                aria-pressed={mode === m}
+                onClick={() => switchMode(m)}
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  gap: 'var(--ax-space-2)',
+                  padding: 'var(--ax-space-2) var(--ax-space-4)',
+                  borderRadius: 'var(--ax-radius-lg)',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontWeight: mode === m ? 600 : 400,
+                  fontSize: 'var(--ax-text-sm)',
+                  transition: 'all .15s',
+                  background: mode === m ? 'var(--ax-surface-raised)' : 'transparent',
+                  color: mode === m ? 'var(--ax-text-strong)' : 'var(--ax-text-muted)',
+                  boxShadow: mode === m ? 'var(--ax-shadow-sm)' : 'none',
+                }}
+              >
+                {m === 'admin' ? IC_SHIELD : IC_USER}
+                {m === 'admin' ? 'Admin Login' : 'Org User Login'}
+              </button>
+            ))}
           </div>
 
-          <div style={{ position: 'relative', maxInlineSize: '30ch' }}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" width={34} height={34} style={{ color: 'var(--ax-accent)', opacity: 0.55, marginBlockEnd: 'var(--ax-space-4)' }}><path d="M10 11h-4a1 1 0 0 1 -1 -1v-3a1 1 0 0 1 1 -1h3a1 1 0 0 1 1 1v6c0 2.667 -1.333 4.333 -4 5" /><path d="M19 11h-4a1 1 0 0 1 -1 -1v-3a1 1 0 0 1 1 -1h3a1 1 0 0 1 1 1v6c0 2.667 -1.333 4.333 -4 5" /></svg>
-            <p style={{ margin: 0, fontFamily: 'var(--ax-font-display)', fontSize: 'var(--ax-text-xl)', lineHeight: 1.4, fontWeight: 'var(--ax-weight-medium)', color: 'var(--ax-text-strong)' }}>Everything our team needs, finally in one calm surface. Vireo just gets out of the way.</p>
-            <div className="ax-cluster" style={{ gap: 'var(--ax-space-3)', marginBlockStart: 'var(--ax-space-5)' }}>
-              <span className="ax-avatar ax-avatar--squircle" style={{ background: 'color-mix(in oklab, var(--ax-viz-violet) 18%, transparent)', color: 'var(--ax-viz-violet)' }}>
-                <svg className="ax-avatar__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round"><path d="M8 7a4 4 0 1 0 8 0a4 4 0 0 0 -8 0" /><path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" /></svg>
-              </span>
-              <div><div style={{ fontWeight: 'var(--ax-weight-semibold)', color: 'var(--ax-text-strong)', fontSize: 'var(--ax-text-sm)' }}>Priya Nair</div><div style={{ fontSize: 'var(--ax-text-xs)', color: 'var(--ax-text-muted)' }}>Head of Operations · Northwind</div></div>
+          {/* ── Card ──────────────────────────────────────────────────── */}
+          <div className="ax-card" style={{ borderRadius: 'var(--ax-radius-xl)' }}>
+            <div className="ax-card__body" style={{ padding: 'var(--ax-space-8)', display: 'flex', flexDirection: 'column', gap: 'var(--ax-space-5)' }}>
+
+              {/* heading */}
+              <header style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ax-space-1)' }}>
+                <h1 style={{ margin: 0, fontFamily: 'var(--ax-font-display)', fontSize: 'var(--ax-text-2xl)', fontWeight: 'var(--ax-weight-semibold)', color: 'var(--ax-text-strong)', letterSpacing: '-.015em' }}>
+                  {isAdmin ? 'Admin Sign In' : 'Org User Sign In'}
+                </h1>
+                <p style={{ margin: 0, fontSize: 'var(--ax-text-sm)', color: 'var(--ax-text-muted)' }}>
+                  {isAdmin
+                    ? 'Sign in with your super-admin credentials.'
+                    : 'Sign in with your organisation user credentials.'}
+                </p>
+              </header>
+
+              {/* role badge */}
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--ax-space-2)', padding: '4px 10px', borderRadius: 99, background: isAdmin ? 'color-mix(in oklch,var(--ax-accent) 12%,transparent)' : 'color-mix(in oklch,var(--ax-viz-emerald) 12%,transparent)', width: 'fit-content' }}>
+                {isAdmin ? IC_SHIELD : IC_USER}
+                <span style={{ fontSize: 'var(--ax-text-xs)', fontWeight: 600, color: isAdmin ? 'var(--ax-accent)' : 'var(--ax-viz-emerald)' }}>
+                  {isAdmin ? 'Super Admin' : 'Organisation User'}
+                </span>
+              </div>
+
+              {/* error alert */}
+              {error && (
+                <div role="alert" className="ax-alert ax-alert--danger" style={{ padding: 'var(--ax-space-3) var(--ax-space-4)' }}>
+                  <svg className="ax-alert__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" /><path d="M12 8v4" /><path d="M12 16h.01" />
+                  </svg>
+                  <div className="ax-alert__content">
+                    <p className="ax-alert__message" style={{ color: 'var(--ax-danger-500)' }}>{error}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* form */}
+              <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ax-space-4)' }} noValidate>
+                <div className="ax-field">
+                  <label className="ax-label" htmlFor="si-email">Email</label>
+                  <input
+                    id="si-email" type="email"
+                    className={`ax-input${emailErr ? ' is-invalid' : ''}`}
+                    autoComplete="username"
+                    placeholder={isAdmin ? 'admin@company.com' : 'you@organisation.com'}
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    aria-invalid={!!emailErr}
+                    aria-describedby={emailErr ? 'si-email-msg' : undefined}
+                    required
+                  />
+                  {emailErr && <p id="si-email-msg" className="ax-field__message ax-field__message--error">{emailErr}</p>}
+                </div>
+
+                <div className="ax-field">
+                  <div className="ax-cluster" style={{ justifyContent: 'space-between' }}>
+                    <label className="ax-label" htmlFor="si-pass">Password</label>
+                    <Link
+                      className="ax-link"
+                      to={isAdmin ? '/auth/reset-password-admin' : '/auth/reset-password-org'}
+                      style={{ fontSize: 'var(--ax-text-xs)' }}
+                    >
+                      Forgot password?
+                    </Link>
+                  </div>
+                  <div className="ax-field__control">
+                    <input
+                      id="si-pass"
+                      className={`ax-input ax-input--with-trailing${passErr ? ' is-invalid' : ''}`}
+                      autoComplete="current-password"
+                      placeholder="••••••••••"
+                      type={reveal ? 'text' : 'password'}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      aria-invalid={!!passErr}
+                      aria-describedby={passErr ? 'si-pass-msg' : undefined}
+                      required
+                    />
+                    <button
+                      type="button"
+                      className="ax-field__affix ax-field__affix--trailing ax-field__affix--button"
+                      onClick={() => setReveal((v) => !v)}
+                      aria-pressed={reveal}
+                      aria-label={reveal ? 'Hide password' : 'Show password'}
+                    >
+                      {reveal ? EYE_OFF : EYE}
+                    </button>
+                  </div>
+                  {passErr && <p id="si-pass-msg" className="ax-field__message ax-field__message--error">{passErr}</p>}
+                </div>
+
+                <label className="ax-check" style={{ fontSize: 'var(--ax-text-sm)', color: 'var(--ax-text)' }}>
+                  <input
+                    type="checkbox" className="ax-checkbox"
+                    checked={remember} onChange={(e) => setRemember(e.target.checked)}
+                  />
+                  <span>Keep me signed in</span>
+                </label>
+
+                <button
+                  type="submit"
+                  className={`ax-btn ax-btn--primary ax-btn--lg ax-btn--block${loading ? ' is-loading' : ''}`}
+                  aria-busy={loading}
+                >
+                  <span className="ax-btn__spinner" aria-hidden="true" />
+                  <span className="ax-btn__label">
+                    {isAdmin ? 'Sign in as Admin' : 'Sign in as Org User'}
+                  </span>
+                </button>
+              </form>
+
+              {/* divider + switch hint */}
+              <div style={{ textAlign: 'center', fontSize: 'var(--ax-text-xs)', color: 'var(--ax-text-subtle)' }}>
+                {isAdmin ? (
+                  <>Not an admin?{' '}
+                    <button type="button" className="ax-link" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: 'inherit', color: 'var(--ax-accent)', fontWeight: 600 }} onClick={() => switchMode('org_user')}>
+                      Login as Org User
+                    </button>
+                  </>
+                ) : (
+                  <>Admin?{' '}
+                    <button type="button" className="ax-link" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: 'inherit', color: 'var(--ax-accent)', fontWeight: 600 }} onClick={() => switchMode('admin')}>
+                      Switch to Admin Login
+                    </button>
+                  </>
+                )}
+              </div>
+
             </div>
           </div>
 
-          <div className="ax-cluster" style={{ gap: 'var(--ax-space-5)', position: 'relative' }}>
-            <div><div className="ax-num" style={{ fontFamily: 'var(--ax-font-display)', fontSize: 'var(--ax-text-xl)', fontWeight: 'var(--ax-weight-semibold)', color: 'var(--ax-text-strong)' }}>24K+</div><div style={{ fontSize: 'var(--ax-text-xs)', color: 'var(--ax-text-muted)' }}>teams onboard</div></div>
-            <div><div className="ax-num" style={{ fontFamily: 'var(--ax-font-display)', fontSize: 'var(--ax-text-xl)', fontWeight: 'var(--ax-weight-semibold)', color: 'var(--ax-text-strong)' }}>99.98%</div><div style={{ fontSize: 'var(--ax-text-xs)', color: 'var(--ax-text-muted)' }}>uptime</div></div>
-            <div><div className="ax-num" style={{ fontFamily: 'var(--ax-font-display)', fontSize: 'var(--ax-text-xl)', fontWeight: 'var(--ax-weight-semibold)', color: 'var(--ax-text-strong)' }}>4.9/5</div><div style={{ fontSize: 'var(--ax-text-xs)', color: 'var(--ax-text-muted)' }}>avg. rating</div></div>
-          </div>
-        </aside> */}
-
-        <main className="ax-center" id="ax-main" style={{ position: 'relative', padding: 'var(--ax-space-8) var(--ax-space-6)' }}>
-          <OffappTools style={{ position: 'absolute', insetBlockStart: 'var(--ax-space-5)', insetInlineEnd: 'var(--ax-space-5)' }} />
-
-          <div style={{ inlineSize: '100%', maxInlineSize: 440, display: 'flex', flexDirection: 'column', gap: 'var(--ax-space-6)' }}>
-            <BrandInline />
-
-            <header style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ax-space-1)' }}>
-              <h1 style={{ margin: 0, fontFamily: 'var(--ax-font-display)', fontSize: 'var(--ax-text-2xl)', fontWeight: 'var(--ax-weight-semibold)', color: 'var(--ax-text-strong)', letterSpacing: '-.015em' }}>Sign in</h1>
-              <p style={{ margin: 0, fontSize: 'var(--ax-text-sm)', color: 'var(--ax-text-muted)' }}>Welcome back — sign in to phause platform.</p>
-            </header>
-
-            {/* <SocialButtons verb="Continue" /> */}
-
-            {/* <div className="ax-cluster" style={{ gap: 'var(--ax-space-3)', flexWrap: 'nowrap' }}>
-              <hr className="ax-divider" style={{ flex: '1 1 auto' }} aria-hidden="true" />
-              <span style={{ fontSize: 'var(--ax-text-xs)', color: 'var(--ax-text-subtle)', whiteSpace: 'nowrap' }}>or continue with email</span>
-              <hr className="ax-divider" style={{ flex: '1 1 auto' }} aria-hidden="true" />
-            </div> */}
-
-            {error && (
-              <div role="alert" className="ax-alert ax-alert--danger" style={{ padding: 'var(--ax-space-3) var(--ax-space-4)' }}>
-                <svg className="ax-alert__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" /><path d="M12 8v4" /><path d="M12 16h.01" /></svg>
-                <div className="ax-alert__content"><p className="ax-alert__message" style={{ color: 'var(--ax-danger-500)' }}>Incorrect email or password. Please try again.</p></div>
-              </div>
-            )}
-
-            <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ax-space-4)' }} noValidate>
-              <div className="ax-field">
-                <label className="ax-label" htmlFor="si-email">Email or username</label>
-                <input id="si-email" type="text" className={`ax-input${emailErr ? ' is-invalid' : ''}`} autoComplete="username" placeholder="you@vireo.io"
-                  value={email} onChange={(e) => setEmail(e.target.value)} aria-invalid={emailErr ? 'true' : 'false'} aria-describedby="si-email-msg" required />
-                {emailErr && <p id="si-email-msg" className="ax-field__message ax-field__message--error">{emailErr}</p>}
-              </div>
-              <div className="ax-field">
-                <div className="ax-cluster" style={{ justifyContent: 'space-between' }}>
-                  <label className="ax-label" htmlFor="si-pass">Password</label>
-                  <Link className="ax-link" to="/auth/reset-password-admin" style={{ fontSize: 'var(--ax-text-xs)' }}>Forgot password?</Link>
-                </div>
-                <div className="ax-field__control">
-                  <input id="si-pass" className={`ax-input ax-input--with-trailing${passErr ? ' is-invalid' : ''}`} autoComplete="current-password" placeholder="••••••••••"
-                    type={reveal ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} aria-invalid={passErr ? 'true' : 'false'} aria-describedby="si-pass-msg" required />
-                  <button type="button" className="ax-field__affix ax-field__affix--trailing ax-field__affix--button" onClick={() => setReveal((v) => !v)} aria-pressed={reveal} aria-label={reveal ? 'Hide password' : 'Show password'}>
-                    {reveal ? EYE_OFF : EYE}
-                  </button>
-                </div>
-                {passErr && <p id="si-pass-msg" className="ax-field__message ax-field__message--error">{passErr}</p>}
-              </div>
-              <label className="ax-check" style={{ fontSize: 'var(--ax-text-sm)', color: 'var(--ax-text)' }}>
-                <input type="checkbox" className="ax-checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} /><span>Keep me signed in</span>
-              </label>
-              <button type="submit" className={`ax-btn ax-btn--primary ax-btn--lg ax-btn--block${loading ? ' is-loading' : ''}`} aria-busy={loading}>
-                <span className="ax-btn__spinner" aria-hidden="true"></span>
-                <span className="ax-btn__label">Sign in</span>
-              </button>
-            </form>
-
-            {/* <p style={{ margin: 0, fontSize: 'var(--ax-text-sm)', color: 'var(--ax-text-muted)' }}>
-              New to Phause? <Link className="ax-link" to="/auth/sign-up-admin" style={{ fontWeight: 'var(--ax-weight-medium)' }}>Create an account</Link>
-            </p> */}
-          </div>
-        </main>
+          <p style={{ textAlign: 'center', margin: 0, fontSize: 'var(--ax-text-2xs)', color: 'var(--ax-text-subtle)' }}>
+            By continuing you agree to the <Link className="ax-link" to="/pages/terms">Terms</Link> and <Link className="ax-link" to="/pages/privacy">Privacy Policy</Link>.
+          </p>
+        </div>
       </div>
     </AuthStandalone>
   );
