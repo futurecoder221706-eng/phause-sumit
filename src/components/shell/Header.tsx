@@ -49,11 +49,9 @@ const typingSentences = [
 ];
 
 export function Header({
-  onCommand,
   onCustomizer,
   onNavToggle,
 }: {
-  onCommand: () => void;
   onCustomizer: () => void;
   onNavToggle: () => void;
 }) {

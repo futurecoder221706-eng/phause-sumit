@@ -272,6 +272,13 @@
      · a bare KPI card takes a quarter, which is what every KPI row wants, so
        the four-across rhythm needs no per-card class. */
 .ax-dash-grid > :where(*) { grid-column: 1 / -1; }
+.campaign-form-grid > :where(*) { min-inline-size: 0; }
+@media (max-width: 992px) {
+  .campaign-form-grid > .ax-col--8,
+  .campaign-form-grid > .ax-col--4 {
+    grid-column: 1 / -1;
+  }
+}
 .ax-dash-grid > :where(.ax-kpi) { grid-column: span 3; }
 @media (max-width: 992px) {
   .ax-dash-grid > :where(.ax-kpi) { grid-column: span 6; }

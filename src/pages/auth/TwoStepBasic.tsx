@@ -154,7 +154,7 @@ export function TwoStepBasic() {
                     <span>{cooldown > 0 ? `Resend in ${cooldown}s` : 'Resend code'}</span>
                   </button>
                 </p>
-                <Link className="ax-link" to="/auth/sign-in-basic" style={{ fontSize: 'var(--ax-text-sm)' }}>Use a different method</Link>
+                <Link className="ax-link" to="/auth/sign-in-org" style={{ fontSize: 'var(--ax-text-sm)' }}>Use a different method</Link>
               </div>
             </div>
           </section>

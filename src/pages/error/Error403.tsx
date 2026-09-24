@@ -31,7 +31,7 @@ export function Error403() {
       </div>
 
       <p style={{ margin: 0, fontSize: 'var(--ax-text-sm)', color: 'var(--ax-text-subtle)' }}>
-        Signed in as the wrong account? <Link className="ax-link" to="/auth/sign-in-basic">Switch user</Link>
+        Signed in as the wrong account? <Link className="ax-link" to="/auth/sign-in-org">Switch user</Link>
       </p>
     </StatusStandalone>
   );

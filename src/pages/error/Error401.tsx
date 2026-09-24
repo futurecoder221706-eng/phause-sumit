@@ -23,7 +23,7 @@ export function Error401() {
         body="You need to sign in to view this page. Your session may have expired — sign back in to pick up where you left off." />
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--ax-space-3)', justifyContent: 'center' }}>
-        <Link className="ax-btn ax-btn--primary" to="/auth/sign-in-basic">
+        <Link className="ax-btn ax-btn--primary" to="/auth/sign-in-org">
           <svg className="ax-btn__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M15 8v-2a2 2 0 0 0 -2 -2h-7a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h7a2 2 0 0 0 2 -2v-2" /><path d="M21 12h-13l3 -3" /><path d="M11 15l-3 -3" /></svg>
           <span className="ax-btn__label">Sign in</span>
         </Link>
@@ -34,7 +34,7 @@ export function Error401() {
       </div>
 
       <p style={{ margin: 0, fontSize: 'var(--ax-text-sm)', color: 'var(--ax-text-subtle)' }}>
-        Trouble signing in? <Link className="ax-link" to="/auth/reset-password-basic">Reset your password</Link>
+        Trouble signing in? <Link className="ax-link" to="/auth/reset-password-org">Reset your password</Link>
       </p>
     </StatusStandalone>
   );

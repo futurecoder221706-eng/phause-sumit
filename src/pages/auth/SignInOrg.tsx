@@ -1,24 +1,22 @@
-/*
- * Vireo React — Sign in (basic).
- * 1:1 re-expression of src/html/auth/sign-in-basic.html: standalone centered
- * card with social row, email/password form, reveal toggle and a demo submit
- * that always flashes the "incorrect credentials" alert (never hits network).
- */
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
-  AuthStandalone, OffappTools, BrandCentered, SocialButtons, EYE, EYE_OFF,
+  AuthStandalone, OffappTools, BrandInline, EYE, EYE_OFF,
 } from './authShared';
+import { useAuthStore } from '../../stores/auth.store';
+import { apiClient, ApiError } from '../../api/client';
 
-export function SignInBasic() {
+export function SignInOrg() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [remember, setRemember] = useState(false);
   const [reveal, setReveal] = useState(false);
   const [emailErr, setEmailErr] = useState('');
   const [passErr, setPassErr] = useState('');
-  const [error, setError] = useState(false);
+  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+  const setAppToken = useAuthStore((s) => s.setAppToken);
 
   function validate() {
     const e = !email.trim()
@@ -31,15 +29,35 @@ export function SignInBasic() {
     setPassErr(p);
     return !e && !p;
   }
-  function submit(ev: React.FormEvent) {
+
+  async function submit(ev: React.FormEvent) {
     ev.preventDefault();
-    setError(false);
+    setError('');
     if (!validate()) return;
     setLoading(true);
-    setTimeout(() => {
+    try {
+      const res = await apiClient.post<{
+        token?: string; accessToken?: string; access_token?: string;
+        orgId?: string; organizationId?: string; org_id?: string;
+      }>(
+        '/api/auth/login',
+        null,
+        { email: email.trim(), password },
+      );
+      const token = res.token ?? res.accessToken ?? res.access_token ?? '';
+      if (!token) throw new Error('No token in response');
+      const orgId = res.orgId ?? res.organizationId ?? res.org_id;
+      setAppToken(token, orgId);
+      navigate('/', { replace: true });
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 401) {
+        setError('Incorrect email or password. Please try again.');
+      } else {
+        setError('Unable to sign in. Please check your connection and try again.');
+      }
+    } finally {
       setLoading(false);
-      setError(true);
-    }, 900);
+    }
   }
 
   return (
@@ -48,27 +66,28 @@ export function SignInBasic() {
 
       <main className="ax-center" id="ax-main" style={{ inlineSize: '100%', maxInlineSize: 400, position: 'relative', zIndex: 1 }}>
         <div style={{ inlineSize: '100%', display: 'flex', flexDirection: 'column', gap: 'var(--ax-space-5)' }}>
-          <BrandCentered />
+          {/* <BrandCentered /> */}
+          <BrandInline />
 
           <section className="ax-card" role="region" aria-label="Sign in" style={{ borderRadius: 'var(--ax-radius-xl)' }}>
             <div className="ax-card__body" style={{ padding: 'var(--ax-space-8)', display: 'flex', flexDirection: 'column', gap: 'var(--ax-space-5)' }}>
               <header style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 'var(--ax-space-1)' }}>
                 <h1 style={{ margin: 0, fontFamily: 'var(--ax-font-display)', fontSize: 'var(--ax-text-2xl)', fontWeight: 'var(--ax-weight-semibold)', color: 'var(--ax-text-strong)', letterSpacing: '-.015em' }}>Sign in</h1>
-                <p style={{ margin: 0, fontSize: 'var(--ax-text-sm)', color: 'var(--ax-text-muted)' }}>Welcome back — sign in to your workspace.</p>
+                <p style={{ margin: 0, fontSize: 'var(--ax-text-sm)', color: 'var(--ax-text-muted)' }}>Welcome back — sign in to phause platform.</p>
               </header>
 
-              <SocialButtons verb="Continue" />
+              {/* <SocialButtons verb="Continue" /> */}
 
-              <div className="ax-cluster" style={{ gap: 'var(--ax-space-3)', flexWrap: 'nowrap' }}>
+              {/* <div className="ax-cluster" style={{ gap: 'var(--ax-space-3)', flexWrap: 'nowrap' }}>
                 <hr className="ax-divider" style={{ flex: '1 1 auto' }} aria-hidden="true" />
                 <span style={{ fontSize: 'var(--ax-text-xs)', color: 'var(--ax-text-subtle)', whiteSpace: 'nowrap' }}>or continue with email</span>
                 <hr className="ax-divider" style={{ flex: '1 1 auto' }} aria-hidden="true" />
-              </div>
+              </div> */}
 
               {error && (
                 <div role="alert" className="ax-alert ax-alert--danger" style={{ padding: 'var(--ax-space-3) var(--ax-space-4)' }}>
                   <svg className="ax-alert__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" /><path d="M12 8v4" /><path d="M12 16h.01" /></svg>
-                  <div className="ax-alert__content"><p className="ax-alert__message" style={{ color: 'var(--ax-danger-500)' }}>Incorrect email or password. Please try again.</p></div>
+                  <div className="ax-alert__content"><p className="ax-alert__message" style={{ color: 'var(--ax-danger-500)' }}>{error}</p></div>
                 </div>
               )}
 
@@ -83,7 +102,7 @@ export function SignInBasic() {
                 <div className="ax-field">
                   <div className="ax-cluster" style={{ justifyContent: 'space-between' }}>
                     <label className="ax-label" htmlFor="si-pass">Password</label>
-                    <Link className="ax-link" to="/auth/reset-password-basic" style={{ fontSize: 'var(--ax-text-xs)' }}>Forgot password?</Link>
+                    <Link className="ax-link" to="/auth/reset-password-org" style={{ fontSize: 'var(--ax-text-xs)' }}>Forgot password?</Link>
                   </div>
                   <div className="ax-field__control">
                     <input id="si-pass" className={`ax-input ax-input--with-trailing${passErr ? ' is-invalid' : ''}`} autoComplete="current-password" placeholder="••••••••••"
@@ -106,9 +125,9 @@ export function SignInBasic() {
                 </button>
               </form>
 
-              <p style={{ textAlign: 'center', margin: 0, fontSize: 'var(--ax-text-sm)', color: 'var(--ax-text-muted)' }}>
+              {/* <p style={{ textAlign: 'center', margin: 0, fontSize: 'var(--ax-text-sm)', color: 'var(--ax-text-muted)' }}>
                 New to Vireo? <Link className="ax-link" to="/auth/sign-up-basic" style={{ fontWeight: 'var(--ax-weight-medium)' }}>Create an account</Link>
-              </p>
+              </p> */}
             </div>
           </section>
 
@@ -121,4 +140,4 @@ export function SignInBasic() {
   );
 }
 
-export default SignInBasic;
+export default SignInOrg;
